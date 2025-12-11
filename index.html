@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Hub | Quick Access</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* =========================================
+           1. CORE VARIABLES & SETUP
+           ========================================= */
+        :root {
+            /* DARK RED GRADIENT (Restored from your original code) */
+            --primary-gradient: linear-gradient(135deg, #e00025 0%, #a8001c 100%);
+            --hover-gradient: linear-gradient(135deg, #a8001c 0%, #e00025 100%);
+            
+            --accent-color: #a8001c;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-dark: #2c3e50;
+            --text-gray: #7f8c8d;
+            
+            /* Modern Shadows */
+            --shadow-soft: 0 10px 30px rgba(0,0,0,0.05);
+            --shadow-hover: 0 20px 40px rgba(168, 0, 28, 0.15); /* Dark red tinted shadow */
+            
+            /* Border Radius */
+            --radius-card: 16px;
+            --radius-btn: 12px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Smooth Entry Animation */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Background Animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(168,0,28,0.03) 0%, transparent 70%);
+            z-index: -1;
+            animation: floatBG 20s infinite linear;
+        }
+
+        @keyframes floatBG {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* =========================================
+           2. HEADER (NARROW & RECTANGULAR)
+           ========================================= */
+        .header {
+            background: var(--primary-gradient);
+            /* Reduced padding to make it narrow (20px top/bottom) */
+            padding: 40px 40px; 
+            text-align: center;
+            position: relative;
+            /* Removed border-radius to make it rectangular */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 100%;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeInUp 0.8s ease-out;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Reduced height constraint */
+            min-height: 80px; 
+        }
+
+        .header-logo img {
+            /* Adjusted max-height for narrower header */
+            max-height: 80px; 
+            width: auto;
+            max-width: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2));
+            transition: transform 0.3s ease;
+        }
+        
+        .header-logo img:hover {
+            transform: scale(1.05);
+        }
+
+        /* =========================================
+           3. NEWS TICKER
+           ========================================= */
+        .news-ticker-bar {
+            background: white;
+            height: 50px;
+            width: 95%; 
+            max-width: 1200px;
+            margin: 20px auto 30px; /* Changed margin since header is now flat */
+            border-radius: 50px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+            z-index: 10;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .ticker-badge {
+            background: #2c3e50;
+            color: white;
+            padding: 0 25px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            z-index: 2;
+            border-radius: 50px 0 0 50px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .ticker-wrapper {
+            flex: 1;
+            overflow: hidden;
+            white-space: nowrap;
+            padding-left: 20px;
+        }
+
+        .ticker-content {
+            display: inline-block;
+            animation: scrollText 40s linear infinite;
+        }
+
+        .ticker-item {
+            display: inline-block;
+            margin-right: 50px;
+            color: var(--text-dark);
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .ticker-item i { color: var(--accent-color); margin-right: 8px; }
+
+        @keyframes scrollText {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-100%); }
+        }
+
+        /* =========================================
+           4. VISUAL SLIDER (Your Images)
+           ========================================= */
+        .slider-container {
+            max-width: 1200px;
+            margin: 0 auto 50px;
+            padding: 0 20px;
+            position: relative;
+            animation: fadeInUp 1.2s ease-out;
+        }
+
+        .slider-frame {
+            width: 100%;
+            height: 500px; /* Fixed height for desktop */
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+        }
+
+        .slider-track {
+            display: flex;
+            height: 100%;
+            width: 500%; /* 5 Slides x 100% */
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .slide {
+            width: 20%; /* 100% / 5 */
+            height: 100%;
+            position: relative;
+        }
+
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+        }
+
+        /* Text Overlay on Slide */
+        .slide-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 60px 30px 30px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .slide:hover .slide-caption { opacity: 1; }
+
+        .slide-caption h3 { font-size: 1.5rem; margin-bottom: 5px; }
+
+        /* Slider Dots */
+        .dots-container {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.3);
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        
+        /* Slider Arrows */
+        .slider-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--accent-color);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+            z-index: 5;
+        }
+        .slider-arrow:hover { background: white; transform: translateY(-50%) scale(1.1); }
+        .arrow-prev { left: 20px; }
+        .arrow-next { right: 20px; }
+
+        /* =========================================
+           5. QUICK ACCESS GRID
+           ========================================= */
+        .grid-section {
+            max-width: 1200px;
+            margin: 0 auto 60px;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: left;
+            margin-bottom: 30px;
+            font-size: 1.8rem;
+            font-weight: 700;
+            position: relative;
+            display: inline-block;
+            color: var(--text-dark);
+        }
+
+        /* Decorative underline */
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: var(--accent-color);
+            border-radius: 2px;
+            transition: width 0.3s;
+        }
+        
+        .section-title:hover::after { width: 100%; }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr); /* 5 Columns Desktop */
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: var(--radius-card);
+            padding: 30px 15px;
+            text-align: center;
+            text-decoration: none;
+            color: var(--text-dark);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-soft);
+            border: 1px solid rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 140px;
+        }
+
+        .card i {
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: transform 0.3s;
+        }
+
+        .card span {
+            font-weight: 600;
+            font-size: 0.95rem;
+            z-index: 2;
+        }
+
+        /* Hover Effects */
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-hover);
+            border-color: rgba(168, 0, 28, 0.1);
+        }
+
+        .card:hover i {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        /* Neon Glow line on top */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--primary-gradient);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .card:hover::before { opacity: 1; }
+
+        /* =========================================
+           6. CONTACT SECTION (Manual Mobile Width + Dark Red)
+           ========================================= */
+        .contact-container {
+            max-width: 1000px;
+            margin: 0 auto 80px;
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            display: grid;
+            grid-template-columns: 35% 65%; /* Desktop Layout */
+            animation: fadeInUp 1.5s ease-out;
+        }
+
+        .contact-info {
+            background: var(--primary-gradient); /* Dark Red */
+            color: white;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Decorative circle in contact bg */
+        .contact-info::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            left: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .contact-info h3 { font-size: 1.8rem; margin-bottom: 10px; z-index: 2; }
+        .contact-info p { opacity: 0.9; z-index: 2; }
+
+        .contact-grid {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+
+        .c-item { display: flex; align-items: flex-start; gap: 15px; }
+        
+        .c-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(168, 0, 28, 0.1);
+            color: var(--accent-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .c-text h4 { font-size: 1rem; margin-bottom: 2px; }
+        .c-text a { text-decoration: none; color: var(--text-gray); font-size: 0.9rem; }
+        .c-text a:hover { color: var(--accent-color); }
+
+        /* =========================================
+           7. FOOTER & EXTRAS
+           ========================================= */
+        footer {
+            background: #1a1a1a;
+            color: #7f8c8d;
+            text-align: center;
+            padding: 40px 20px;
+            margin-top: auto;
+        }
+
+        .whatsapp-float {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            background: #25d366;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
+            transition: transform 0.3s;
+            z-index: 100;
+            text-decoration: none;
+        }
+        
+        .whatsapp-float:hover { transform: scale(1.1); }
+
+        /* Scroll Wrapper for Mobile (Hidden on Desktop) */
+        .mobile-scroll-wrapper { display: none; }
+
+        /* =========================================
+           8. RESPONSIVE DESIGN
+           ========================================= */
+        @media (max-width: 1024px) {
+            .grid-container { display: none; /* Hide grid, show scroll */ }
+            
+            .mobile-scroll-wrapper {
+                display: block;
+                overflow-x: auto;
+                padding: 10px 20px 30px;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .mobile-scroll-inner {
+                display: flex;
+                gap: 15px;
+                width: max-content;
+            }
+            
+            .mobile-scroll-inner .card {
+                width: 140px;
+                height: 130px;
+                flex-shrink: 0;
+            }
+
+            .slider-frame { height: 250px; }
+            
+            /* --- MANUAL MOBILE WIDTH ADJUSTMENT FOR CONTACT --- */
+            /* Keeping it side-by-side as you requested! */
+            .contact-container {
+                grid-template-columns: 1.5fr 2fr; 
+                max-width: 95%;
+                margin-left: auto; 
+                margin-right: auto;
+            }
+            
+            .contact-info { padding: 25px; }
+            .contact-info h3 { font-size: 1.4rem; }
+            
+            .contact-grid { 
+                padding: 25px; 
+                grid-template-columns: 1fr; /* Items stack inside the right panel */
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header { padding: 30px 15px; }
+            .header-content { min-height: 80px; }
+            .header-logo img { max-height: 70px; }
+            
+            .news-ticker-bar { width: 100%; border-radius: 0; margin-top: 10px; }
+            .ticker-badge { padding: 0 10px; font-size: 0.7rem; }
+            
+            .slider-frame { height: 200px; }
+            .slider-arrow { width: 30px; height: 30px; font-size: 0.8rem; }
+            
+            .whatsapp-float { width: 50px; height: 50px; font-size: 24px; bottom: 20px; right: 20px; }
+            
+            /* Contact Section - Ensure it fits small screens but keeps side-by-side */
+            .contact-container {
+                grid-template-columns: 1fr 1.5fr; 
+                width: 95%;
+            }
+            .contact-info { padding: 15px; }
+            .contact-grid { padding: 15px; }
+            .c-icon { width: 35px; height: 35px; font-size: 1rem; }
+            .c-text h4 { font-size: 0.9rem; }
+            .c-text a { font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="header-logo">
+                <img src="company-logo.png" alt="Company Logo">
+            </div>
+        </div>
+    </header>
+
+    <div class="news-ticker-bar">
+        <div class="ticker-badge">LATEST NEWS</div>
+        <div class="ticker-wrapper">
+            <div class="ticker-content">
+                <div class="ticker-item"><i class="fas fa-bullhorn"></i> Welcome to the new Employee Portal!</div>
+                <div class="ticker-item"><i class="fas fa-calendar"></i> Meeting Hall maintenance scheduled for Friday.</div>
+                <div class="ticker-item"><i class="fas fa-trophy"></i> Q3 Sales exceeded targets by 15%.</div>
+                <div class="ticker-item"><i class="fas fa-star"></i> Employee of the Month: Sarah Jenkins.</div>
+                <div class="ticker-item"><i class="fas fa-bullhorn"></i> Welcome to the new Employee Portal!</div>
+                <div class="ticker-item"><i class="fas fa-calendar"></i> Meeting Hall maintenance scheduled for Friday.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="slider-container">
+        <div class="slider-frame">
+            <div class="slider-track" id="sliderTrack">
+                <div class="slide">
+                    <img src="image-1.jpg" alt="Highlight 1">
+                    <div class="slide-caption"><h3>Highlights</h3></div>
+                </div>
+                <div class="slide">
+                    <img src="image-2.jpg" alt="Highlight 2">
+                </div>
+                <div class="slide">
+                    <img src="image-3.jpg" alt="Highlight 3">
+                </div>
+                <div class="slide">
+                    <img src="image-4.jpg" alt="Highlight 4">
+                </div>
+                <div class="slide">
+                    <img src="image-5.jpg" alt="Highlight 5">
+                </div>
+            </div>
+            
+            <div class="dots-container" id="dotsContainer">
+                <div class="dot active" data-index="0"></div>
+                <div class="dot" data-index="1"></div>
+                <div class="dot" data-index="2"></div>
+                <div class="dot" data-index="3"></div>
+                <div class="dot" data-index="4"></div>
+            </div>
+                                
+        </div>
+    </div>
+
+    <div class="grid-section">
+        <h2 class="section-title">Quick Access</h2>
+        
+        <div class="grid-container">
+            <a href="https://www.example.com/link1" target="_blank" class="card"><i class="fas fa-rocket"></i><span>Launch Pad</span></a>
+            <a href="https://www.example.com/link2" target="_blank" class="card"><i class="fas fa-chart-pie"></i><span>Analytics</span></a>
+            <a href="https://www.example.com/link3" target="_blank" class="card"><i class="fas fa-users"></i><span>HR Portal</span></a>
+            <a href="https://www.example.com/link4" target="_blank" class="card"><i class="fas fa-file-invoice-dollar"></i><span>Finance</span></a>
+            <a href="https://www.example.com/link5" target="_blank" class="card"><i class="fas fa-headset"></i><span>IT Support</span></a>
+            
+            <a href="https://www.example.com/link6" target="_blank" class="card"><i class="fas fa-calendar-check"></i><span>Booking</span></a>
+            <a href="https://www.example.com/link7" target="_blank" class="card"><i class="fas fa-book"></i><span>Knowledge Base</span></a>
+            <a href="https://www.example.com/link8" target="_blank" class="card"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
+            <a href="https://www.example.com/link9" target="_blank" class="card"><i class="fas fa-envelope"></i><span>Webmail</span></a>
+            <a href="https://www.example.com/link10" target="_blank" class="card"><i class="fas fa-cloud-upload-alt"></i><span>Uploads</span></a>
+            
+            <a href="https://www.example.com/link11" target="_blank" class="card"><i class="fas fa-laptop-code"></i><span>Development</span></a>
+            <a href="https://www.example.com/link12" target="_blank" class="card"><i class="fas fa-project-diagram"></i><span>Projects</span></a>
+            <a href="https://www.example.com/link13" target="_blank" class="card"><i class="fas fa-sitemap"></i><span>HR System</span></a>
+            <a href="https://www.example.com/link14" target="_blank" class="card"><i class="fas fa-tasks"></i><span>TaskManager</span></a>
+            <a href="https://www.example.com/link15" target="_blank" class="card"><i class="fas fa-server"></i><span>ServerStatus</span></a>
+            
+            <a href="https://www.example.com/link16" target="_blank" class="card"><i class="fas fa-database"></i><span>Database</span></a>
+            <a href="https://www.example.com/link17" target="_blank" class="card"><i class="fas fa-shield-alt"></i><span>Security</span></a>
+            <a href="https://www.example.com/link18" target="_blank" class="card"><i class="fas fa-user-lock"></i><span>Admin</span></a>
+            <a href="https://www.example.com/link19" target="_blank" class="card"><i class="fas fa-tools"></i><span>Internal</span></a>
+            <a href="https://www.example.com/link20" target="_blank" class="card"><i class="fas fa-power-off"></i><span>Control</span></a>
+
+            <a href="https://www.example.com/link21" target="_blank" class="card"><i class="fas fa-file-pdf"></i><span>Manuals</span></a>
+            <a href="https://www.example.com/link22" target="_blank" class="card"><i class="fas fa-wallet"></i><span>Finance App</span></a>
+            <a href="https://www.example.com/link23" target="_blank" class="card"><i class="fas fa-globe"></i><span>Website</span></a>
+            <a href="https://www.example.com/link24" target="_blank" class="card"><i class="fas fa-bell"></i><span>Notices</span></a>
+            <a href="https://www.example.com/link25" target="_blank" class="card"><i class="fas fa-magic"></i><span>Sandbox</span></a>
+        </div>
+
+        <div class="mobile-scroll-wrapper">
+            <div class="mobile-scroll-inner">
+                <a href="#" class="card"><i class="fas fa-rocket"></i><span>Launch</span></a>
+                <a href="#" class="card"><i class="fas fa-chart-pie"></i><span>Stats</span></a>
+                <a href="#" class="card"><i class="fas fa-users"></i><span>HR</span></a>
+                <a href="#" class="card"><i class="fas fa-file-invoice-dollar"></i><span>Finance</span></a>
+                <a href="#" class="card"><i class="fas fa-headset"></i><span>Help</span></a>
+                <a href="#" class="card"><i class="fas fa-calendar-check"></i><span>Booking</span></a>
+                
+            <a href="https://www.example.com/link11" target="_blank" class="card"><i class="fas fa-laptop-code"></i><span>Development</span></a>
+            <a href="https://www.example.com/link12" target="_blank" class="card"><i class="fas fa-project-diagram"></i><span>Projects</span></a>
+            <a href="https://www.example.com/link13" target="_blank" class="card"><i class="fas fa-sitemap"></i><span>HR System</span></a>
+            <a href="https://www.example.com/link14" target="_blank" class="card"><i class="fas fa-tasks"></i><span>TaskManager</span></a>
+            <a href="https://www.example.com/link15" target="_blank" class="card"><i class="fas fa-server"></i><span>ServerStatus</span></a>
+            
+            <a href="https://www.example.com/link16" target="_blank" class="card"><i class="fas fa-database"></i><span>Database</span></a>
+            <a href="https://www.example.com/link17" target="_blank" class="card"><i class="fas fa-shield-alt"></i><span>Security</span></a>
+            <a href="https://www.example.com/link18" target="_blank" class="card"><i class="fas fa-user-lock"></i><span>Admin</span></a>
+            <a href="https://www.example.com/link19" target="_blank" class="card"><i class="fas fa-tools"></i><span>Internal</span></a>
+            <a href="https://www.example.com/link20" target="_blank" class="card"><i class="fas fa-power-off"></i><span>Control</span></a>
+
+            <a href="https://www.example.com/link21" target="_blank" class="card"><i class="fas fa-file-pdf"></i><span>Manuals</span></a>
+            <a href="https://www.example.com/link22" target="_blank" class="card"><i class="fas fa-wallet"></i><span>Finance App</span></a>
+            <a href="https://www.example.com/link23" target="_blank" class="card"><i class="fas fa-globe"></i><span>Website</span></a>
+            <a href="https://www.example.com/link24" target="_blank" class="card"><i class="fas fa-bell"></i><span>Notices</span></a>
+            <a href="https://www.example.com/link25" target="_blank" class="card"><i class="fas fa-magic"></i><span>Sandbox</span></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="contact-container">
+        <div class="contact-info">
+            <h3>Contact Us</h3>
+            <p>We are online 24/7</p>
+        </div>
+        <div class="contact-grid">
+            <div class="c-item">
+                <div class="c-icon"><i class="fas fa-phone-alt"></i></div>
+                <div class="c-text">
+                    <h4>Call Us</h4>
+                    <a href="tel:+123456789">+1 (123) 456-7890</a>
+                </div>
+            </div>
+            <div class="c-item">
+                <div class="c-icon"><i class="fas fa-envelope"></i></div>
+                <div class="c-text">
+                    <h4>Email</h4>
+                    <a href="mailto:help@company.com">help@company.com</a>
+                </div>
+            </div>
+            <div class="c-item">
+                <div class="c-icon"><i class="fas fa-map-marker-alt"></i></div>
+                <div class="c-text">
+                    <h4>Visit</h4>
+                    <a href="#">123 Tech Blvd, City</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="https://wa.me/1234567890" target="_blank" class="whatsapp-float">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+
+    <footer>
+        <p>&copy; 2025 Company Hub. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const track = document.getElementById('sliderTrack');
+            const dots = document.querySelectorAll('.dot');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            let index = 0;
+            const totalSlides = 5;
+            
+            function updateSlide() {
+                // Shift track
+                track.style.transform = `translateX(-${index * 20}%)`;
+                
+                // Update dots
+                dots.forEach(d => d.classList.remove('active'));
+                dots[index].classList.add('active');
+            }
+            
+            function nextSlide() {
+                index = (index + 1) % totalSlides;
+                updateSlide();
+            }
+            
+            function prevSlide() {
+                index = (index - 1 + totalSlides) % totalSlides;
+                updateSlide();
+            }
+            
+            // Auto Play
+            let slideInterval = setInterval(nextSlide, 3000);
+            
+            function resetInterval() {
+                clearInterval(slideInterval);
+                slideInterval = setInterval(nextSlide, 3000);
+            }
+            
+            // Manual Click - Dots
+            dots.forEach(dot => {
+                dot.addEventListener('click', function() {
+                    index = parseInt(this.getAttribute('data-index'));
+                    updateSlide();
+                    resetInterval();
+                });
+            });
+
+            // Manual Click - Arrows
+            nextBtn.addEventListener('click', () => {
+                nextSlide();
+                resetInterval();
+            });
+
+            prevBtn.addEventListener('click', () => {
+                prevSlide();
+                resetInterval();
+            });
+            
+            // Stop slider on hover
+            const frame = document.querySelector('.slider-frame');
+            frame.addEventListener('mouseenter', () => clearInterval(slideInterval));
+            frame.addEventListener('mouseleave', () => resetInterval());
+            
+            console.log("Visual Slider initialized.");
+        });
+    </script>
+</body>
+</html>
