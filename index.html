@@ -13,7 +13,6 @@
            1. CORE VARIABLES & SETUP
            ========================================= */
         :root {
-            /* DARK RED GRADIENT (Restored from your original code) */
             --primary-gradient: linear-gradient(135deg, #e00025 0%, #a8001c 100%);
             --hover-gradient: linear-gradient(135deg, #a8001c 0%, #e00025 100%);
             
@@ -25,7 +24,7 @@
             
             /* Modern Shadows */
             --shadow-soft: 0 10px 30px rgba(0,0,0,0.05);
-            --shadow-hover: 0 20px 40px rgba(168, 0, 28, 0.15); /* Dark red tinted shadow */
+            --shadow-hover: 0 20px 40px rgba(168, 0, 28, 0.15); 
             
             /* Border Radius */
             --radius-card: 16px;
@@ -71,11 +70,9 @@
            ========================================= */
         .header {
             background: var(--primary-gradient);
-            /* Reduced padding to make it narrow (20px top/bottom) */
             padding: 40px 40px; 
             text-align: center;
             position: relative;
-            /* Removed border-radius to make it rectangular */
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             width: 100%;
         }
@@ -87,12 +84,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Reduced height constraint */
             min-height: 80px; 
         }
 
         .header-logo img {
-            /* Adjusted max-height for narrower header */
             max-height: 80px; 
             width: auto;
             max-width: 100%;
@@ -113,7 +108,7 @@
             height: 50px;
             width: 95%; 
             max-width: 1200px;
-            margin: 20px auto 30px; /* Changed margin since header is now flat */
+            margin: 20px auto 30px; 
             border-radius: 12px;
             box-shadow: 0 5px 20px rgba(0,0,0,0.08);
             display: flex;
@@ -165,66 +160,66 @@
             0% { transform: translateX(0); }
             100% { transform: translateX(-100%); }
         }
-/* =========================================
-   4. VISUAL SLIDER (Premium Fade + Parallax)
-========================================= */
+        /* =========================================
+           4. VISUAL SLIDER
+        ========================================= */
 
-.slider-container {
-    max-width: 1200px;
-    margin: 0 auto 50px;
-    padding: 0 20px;
-    position: relative;
-}
+        .slider-container {
+            max-width: 1200px;
+            margin: 0 auto 50px;
+            padding: 0 20px;
+            position: relative;
+        }
 
-.slider-frame {
-    width: 100%;
-    height: 500px;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: var(--shadow-soft);
-    position: relative;
-}
+        .slider-frame {
+            width: 100%;
+            height: 500px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-soft);
+            position: relative;
+        }
 
-/* Slides stacked */
-.slide {
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transform: scale(1.15);
-    transition: opacity 1.2s ease, transform 1.8s ease;
-}
+        /* Slides stacked */
+        .slide {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transform: scale(1.15);
+            transition: opacity 1.2s ease, transform 1.8s ease;
+        }
 
-.slide.active {
-    opacity: 1;
-    transform: scale(1);
-    z-index: 1;
-}
+        .slide.active {
+            opacity: 1;
+            transform: scale(1);
+            z-index: 1;
+        }
 
-.slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-/* Caption */
-.slide-caption {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    padding: 60px 30px 30px;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
-    color: white;
+        /* Caption */
+        .slide-caption {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 60px 30px 30px;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
 
-    opacity: 0;
-    transform: translateY(20px);
-    transition: 0.7s ease;
-}
+            opacity: 0;
+            transform: translateY(20px);
+            transition: 0.7s ease;
+        }
 
-.slide.active .slide-caption {
-    opacity: 1;
-    transform: translateY(0);
-}
+        .slide.active .slide-caption {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
 
         /* =========================================
@@ -327,8 +322,11 @@
 
         .card:hover::before { opacity: 1; }
 
+        /* Scroll Wrapper for Mobile (Now always hidden) */
+        .mobile-scroll-wrapper { display: none; }
+
         /* =========================================
-           6. CONTACT SECTION (Manual Mobile Width + Dark Red)
+           6. CONTACT SECTION 
            ========================================= */
         .contact-container {
             max-width: 1000px;
@@ -343,7 +341,7 @@
         }
 
         .contact-info {
-            background: var(--primary-gradient); /* Dark Red */
+            background: var(--primary-gradient); 
             color: white;
             padding: 40px;
             display: flex;
@@ -426,40 +424,46 @@
         
         .whatsapp-float:hover { transform: scale(1.1); }
 
-        /* Scroll Wrapper for Mobile (Hidden on Desktop) */
-        .mobile-scroll-wrapper { display: none; }
 
         /* =========================================
-           8. RESPONSIVE DESIGN
+           8. RESPONSIVE DESIGN (MODIFIED FOR 5 COLUMNS ON MOBILE)
            ========================================= */
         @media (max-width: 1024px) {
-            .grid-container { display: none; /* Hide grid, show scroll */ }
             
-            .mobile-scroll-wrapper {
-                display: block;
-                overflow-x: auto;
-                padding: 10px 20px 30px;
-                -webkit-overflow-scrolling: touch;
+            /* --- MODIFICATIONS FOR QUICK ACCESS GRID --- */
+            /* 1. Show the main grid container and force 5 columns */
+            .grid-container {
+                display: grid; 
+                grid-template-columns: repeat(5, 1fr); 
+                gap: 10px; /* Reduce gap slightly for narrow screens */
             }
             
-            .mobile-scroll-inner {
-                display: flex;
-                gap: 15px;
-                width: max-content;
+            .grid-section { padding: 0 10px; }
+
+            .card {
+                padding: 15px 5px; /* Reduce card padding */
+                min-height: 90px;
             }
             
-            .mobile-scroll-inner .card {
-                width: 140px;
-                height: 130px;
-                flex-shrink: 0;
+            .card i {
+                font-size: 1.4rem; /* Smaller icons */
+                margin-bottom: 5px;
             }
+            
+            .card span {
+                font-weight: 600;
+                font-size: 0.65rem; /* Much smaller text to fit 5 columns */
+                line-height: 1.1;
+                word-break: break-word; 
+            }
+            /* --- END QUICK ACCESS MODIFICATIONS --- */
+            
 
             .slider-frame { height: 250px; }
             
-            /* --- MANUAL MOBILE WIDTH ADJUSTMENT FOR CONTACT --- */
-            /* Keeping it side-by-side as you requested! */
+            /* --- CONTACT SECTION: Stack contact info vertically on narrow screens --- */
             .contact-container {
-                grid-template-columns: 1.5fr 2fr; 
+                grid-template-columns: 1fr; 
                 max-width: 95%;
                 margin-left: auto; 
                 margin-right: auto;
@@ -470,7 +474,7 @@
             
             .contact-grid { 
                 padding: 25px; 
-                grid-template-columns: 1fr; /* Items stack inside the right panel */
+                grid-template-columns: repeat(2, 1fr); /* 2 columns for contact items */
                 gap: 20px;
             }
         }
@@ -484,20 +488,15 @@
             .ticker-badge { padding: 0 10px; font-size: 0.7rem; }
             
             .slider-frame { height: 200px; }
-            .slider-arrow { width: 30px; height: 30px; font-size: 0.8rem; }
             
             .whatsapp-float { width: 50px; height: 50px; font-size: 24px; bottom: 20px; right: 20px; }
             
-            /* Contact Section - Ensure it fits small screens but keeps side-by-side */
-            .contact-container {
-                grid-template-columns: 1fr 1.5fr; 
-                width: 95%;
+            /* Contact Section - Stack contact grid items for very small phones */
+            .contact-grid { 
+                grid-template-columns: 1fr; 
+                gap: 15px;
+                padding: 15px;
             }
-            .contact-info { padding: 15px; }
-            .contact-grid { padding: 15px; }
-            .c-icon { width: 35px; height: 35px; font-size: 1rem; }
-            .c-text h4 { font-size: 0.9rem; }
-            .c-text a { font-size: 0.8rem; }
         }
     </style>
 </head>
@@ -526,23 +525,23 @@
     </div>
 
     <div class="slider-container">
-     <div class="slider-frame">
-    <div class="slide active">
+       <div class="slider-frame">
+     <div class="slide active">
         <img src="image-1.jpg">
         <div class="slide-caption"><h3>Welcome To Reben</h3></div>
-    </div>
-    <div class="slide"><img src="image-2.jpg"></div>
-    <div class="slide"><img src="image-3.jpg"></div>
-    <div class="slide"><img src="image-4.jpg"></div>
-    <div class="slide"><img src="image-5.jpg"></div>
+     </div>
+     <div class="slide"><img src="image-2.jpg"></div>
+     <div class="slide"><img src="image-3.jpg"></div>
+     <div class="slide"><img src="image-4.jpg"></div>
+     <div class="slide"><img src="image-5.jpg"></div>
 
-    <div class="dots-container" id="dotsContainer">
-        <div class="dot active" data-index="0"></div>
-        <div class="dot" data-index="1"></div>
-        <div class="dot" data-index="2"></div>
-        <div class="dot" data-index="3"></div>
-        <div class="dot" data-index="4"></div>
-    </div>                              
+     <div class="dots-container" id="dotsContainer">
+         <div class="dot active" data-index="0"></div>
+         <div class="dot" data-index="1"></div>
+         <div class="dot" data-index="2"></div>
+         <div class="dot" data-index="3"></div>
+         <div class="dot" data-index="4"></div>
+     </div>                              
         </div>
     </div>
 
@@ -580,42 +579,8 @@
             <a href="https://www.example.com/link24" target="_blank" class="card"><i class="fas fa-bell"></i><span>Notices</span></a>
             <a href="https://www.example.com/link25" target="_blank" class="card"><i class="fas fa-magic"></i><span>Sandbox</span></a>
         </div>
-
-        <div class="mobile-scroll-wrapper">
-            <div class="mobile-scroll-inner">
-             <a href="https://forms.gle/wGanzYmbLnAcDYSN6" target="_blank" class="card"><i class="fas fa-rocket"></i><span>Station Stock</span></a>
-            <a href="https://forms.gle/29xXeGCY1CiwZamT7" target="_blank" class="card"><i class="fas fa-chart-pie"></i><span>Daily sales</span></a>
-            <a href="https://forms.gle/2wnGA4d7oYULkVu66" target="_blank" class="card"><i class="fas fa-users"></i><span>Daily Staion Stocks</span></a>
-            <a href="https://forms.gle/XKmGf9MfXWXdZfrr8" target="_blank" class="card"><i class="fas fa-file-invoice-dollar"></i><span>Station Inspections</span></a>
-            <a href="https://www.example.com/link5" target="_blank" class="card"><i class="fas fa-headset"></i><span>IT Support</span></a>
-            
-            <a href="https://www.example.com/link6" target="_blank" class="card"><i class="fas fa-calendar-check"></i><span>Booking</span></a>
-            <a href="https://www.example.com/link7" target="_blank" class="card"><i class="fas fa-book"></i><span>Knowledge Base</span></a>
-            <a href="https://www.example.com/link8" target="_blank" class="card"><i class="fas fa-bullhorn"></i><span>Announcements</span></a>
-            <a href="https://www.example.com/link9" target="_blank" class="card"><i class="fas fa-envelope"></i><span>Webmail</span></a>
-            <a href="https://www.example.com/link10" target="_blank" class="card"><i class="fas fa-cloud-upload-alt"></i><span>Uploads</span></a>
-            
-                
-            <a href="https://www.example.com/link11" target="_blank" class="card"><i class="fas fa-laptop-code"></i><span>Development</span></a>
-            <a href="https://www.example.com/link12" target="_blank" class="card"><i class="fas fa-project-diagram"></i><span>Projects</span></a>
-            <a href="https://www.example.com/link13" target="_blank" class="card"><i class="fas fa-sitemap"></i><span>HR System</span></a>
-            <a href="https://www.example.com/link14" target="_blank" class="card"><i class="fas fa-tasks"></i><span>TaskManager</span></a>
-            <a href="https://www.example.com/link15" target="_blank" class="card"><i class="fas fa-server"></i><span>ServerStatus</span></a>
-            
-            <a href="https://www.example.com/link16" target="_blank" class="card"><i class="fas fa-database"></i><span>Database</span></a>
-            <a href="https://www.example.com/link17" target="_blank" class="card"><i class="fas fa-shield-alt"></i><span>Security</span></a>
-            <a href="https://www.example.com/link18" target="_blank" class="card"><i class="fas fa-user-lock"></i><span>Admin</span></a>
-            <a href="https://www.example.com/link19" target="_blank" class="card"><i class="fas fa-tools"></i><span>Internal</span></a>
-            <a href="https://www.example.com/link20" target="_blank" class="card"><i class="fas fa-power-off"></i><span>Control</span></a>
-
-            <a href="https://www.example.com/link21" target="_blank" class="card"><i class="fas fa-file-pdf"></i><span>Manuals</span></a>
-            <a href="https://www.example.com/link22" target="_blank" class="card"><i class="fas fa-wallet"></i><span>Finance App</span></a>
-            <a href="https://www.example.com/link23" target="_blank" class="card"><i class="fas fa-globe"></i><span>Website</span></a>
-            <a href="https://www.example.com/link24" target="_blank" class="card"><i class="fas fa-bell"></i><span>Notices</span></a>
-            <a href="https://www.example.com/link25" target="_blank" class="card"><i class="fas fa-magic"></i><span>Sandbox</span></a>
-            </div>
+        
         </div>
-    </div>
 
     <div class="contact-container">
         <div class="contact-info">
@@ -648,15 +613,15 @@
             </div>
         </div>
     </div>
-    <!-- App Download Section -->
-<div style="display: flex; justify-content: center; margin: 50px 0; flex-wrap: wrap; gap: 20px;">
+    
+    <div style="display: flex; justify-content: center; margin: 50px 0; flex-wrap: wrap; gap: 20px;">
     <a href="https://play.google.com/store/apps/details?id=com.techsoft.bob.reben_worker" target="_blank">
         <img src="https://upload.wikimedia.org/wikipedia/commons/7/78/Google_Play_Store_badge_EN.svg" 
-             alt="Get it on Google Play" style="height:60px; transition: transform 0.3s;">
+              alt="Get it on Google Play" style="height:60px; transition: transform 0.3s;">
     </a>
     <a href="https://apps.apple.com/app/464298168" target="_blank">
         <img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" 
-             alt="Download on the App Store" style="height:60px; transition: transform 0.3s;">
+              alt="Download on the App Store" style="height:60px; transition: transform 0.3s;">
     </a>
 </div>
 
@@ -666,9 +631,8 @@
 </a>
 
     <footer>
-        <p>&copy; 2025 Reben. All Rights Reserved.</p>
-
-         <p>&copy; Designed By Mozahid</p>
+        <p>© 2025 Reben. All Rights Reserved.</p>
+        <p>© Designed By Mozahid</p>
     </footer>
 
     <script>
@@ -693,12 +657,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // Auto Play
-            let slideInterval = setInterval(nextSlide, 4000);
-            
-            function resetInterval() {
-                clearInterval(slideInterval);
-                slideInterval = setInterval(nextSlide, 4000);
-            }
+    let slideInterval = setInterval(nextSlide, 4000);
+    
+    function resetInterval() {
+        clearInterval(slideInterval);
+        slideInterval = setInterval(nextSlide, 4000);
+    }
 
     function startAuto() {
         interval = setInterval(nextSlide, 4000);
