@@ -25,6 +25,9 @@
                 0 8px 16px -8px rgba(0,0,0,0.3);
             --shadow-glow: 0 0 20px rgba(255, 15, 57, 0.3);
             --curve: 20px;
+            --whatsapp-green: #25d366;
+            --whatsapp-dark: #128c7e;
+            --whatsapp-light: #dcf8c6;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -48,7 +51,7 @@
                 radial-gradient(at 100% 0%, rgba(23, 23, 100, 0.05) 0px, transparent 50%),
                 radial-gradient(at 100% 100%, rgba(255, 15, 57, 0.05) 0px, transparent 50%);
             z-index: -1;
-            transform: translateZ(0); /* Hardware Acceleration */
+            transform: translateZ(0);
         }
 
         /* =========================================
@@ -68,7 +71,6 @@
             -webkit-backdrop-filter: blur(16px);
             max-width: 1200px;
             margin: 0 auto;
-            /* UPDATED: Reduced from 20px to 12px */
             border-radius: 12px; 
             padding: 15px 30px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.05);
@@ -104,7 +106,6 @@
             background: var(--dark-bg);
             color: white;
             height: 46px;
-            /* UPDATED: Reduced from 50px to 10px */
             border-radius: 10px; 
             display: flex;
             align-items: center;
@@ -125,16 +126,13 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             z-index: 2;
-            /* UPDATED: Reduced from 50px to 10px (but keeping the sharp inside edge) */
             border-radius: 10px; 
             box-shadow: 5px 0 15px rgba(0,0,0,0.2);
         }
         
-        /* Override for badge, making it align flush to the bar */
         .news-ticker-bar .ticker-badge {
             border-radius: 10px 0 0 10px; 
         }
-
 
         .ticker-wrapper {
             flex: 1;
@@ -145,7 +143,7 @@
         .ticker-content {
             display: inline-block;
             animation: scrollText 35s linear infinite;
-            padding-right: 100%; /* Ensure continuous loop when content is duplicated */
+            padding-right: 100%;
             will-change: transform;
         }
 
@@ -161,7 +159,7 @@
 
         @keyframes scrollText {
             0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); } /* Assuming content is duplicated */
+            100% { transform: translateX(-50%); }
         }
 
         /* =========================================
@@ -177,7 +175,6 @@
         .slider-frame {
             width: 100%;
             height: 450px;
-            /* Retaining 24px for a nice contrast with the header/footer */
             border-radius: 24px; 
             overflow: hidden;
             position: relative;
@@ -284,7 +281,6 @@
             -webkit-text-fill-color: transparent;
         }
 
-        /* --- Mobile Horizontal Scroll Layout --- */
         .grid-row { 
             display: flex;
             overflow-x: auto;
@@ -293,11 +289,7 @@
             margin-bottom: 25px;
             padding-left: 20px;
             padding-right: 20px;
-            
-            /* Smooth momentum scrolling on iOS */
             -webkit-overflow-scrolling: touch; 
-            
-            /* Hide scrollbar */
             -ms-overflow-style: none;
             scrollbar-width: none;
         }
@@ -315,13 +307,11 @@
             justify-content: center;
             text-decoration: none;
             position: relative;
-            /* Smoother ease-out transition */
             transition: transform 0.3s ease-out, box-shadow 0.3s ease-out; 
             border: 1px solid rgba(0,0,0,0.03);
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
             overflow: hidden;
             z-index: 1;
-            /* Optimize for animation */
             will-change: transform; 
         }
 
@@ -449,25 +439,229 @@
         }
         .app-downloads img:hover { transform: translateY(-5px); }
 
-        .whatsapp-float {
+        /* =========================================
+            7. ULTIMATE EYE-CATCHING WHATSAPP ICON
+            ========================================= */
+        .whatsapp-container {
             position: fixed;
             bottom: 30px;
             right: 30px;
-            width: 65px;
-            height: 65px;
-            background: #25d366;
+            z-index: 1000;
+        }
+
+        .whatsapp-float {
+            position: relative;
+            width: 75px;
+            height: 75px;
+            background: linear-gradient(135deg, var(--whatsapp-green) 0%, var(--whatsapp-dark) 100%);
             color: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 32px;
-            box-shadow: 0 10px 25px rgba(37, 211, 102, 0.4);
-            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            font-size: 38px;
+            box-shadow: 
+                0 20px 40px rgba(37, 211, 102, 0.5),
+                0 0 0 15px rgba(37, 211, 102, 0.15),
+                0 0 0 30px rgba(37, 211, 102, 0.08);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 100;
             text-decoration: none;
+            overflow: hidden;
+            animation: floatBounce 3s ease-in-out infinite, glowPulse 2s ease-in-out infinite;
         }
-        .whatsapp-float:hover { transform: scale(1.1) rotate(10deg); }
+
+        /* Floating bounce animation */
+        @keyframes floatBounce {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            30% {
+                transform: translateY(-15px) rotate(8deg);
+            }
+            60% {
+                transform: translateY(-5px) rotate(-4deg);
+            }
+        }
+
+        /* Glow pulse animation */
+        @keyframes glowPulse {
+            0%, 100% {
+                box-shadow: 
+                    0 20px 40px rgba(37, 211, 102, 0.5),
+                    0 0 0 15px rgba(37, 211, 102, 0.15),
+                    0 0 0 30px rgba(37, 211, 102, 0.08);
+            }
+            50% {
+                box-shadow: 
+                    0 25px 50px rgba(37, 211, 102, 0.7),
+                    0 0 0 20px rgba(37, 211, 102, 0.2),
+                    0 0 0 40px rgba(37, 211, 102, 0.1);
+            }
+        }
+
+        /* Rotating ring effect */
+        .whatsapp-float::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: conic-gradient(
+                transparent,
+                var(--whatsapp-green),
+                var(--whatsapp-light),
+                var(--whatsapp-dark),
+                transparent
+            );
+            border-radius: 50%;
+            animation: spinRing 3s linear infinite;
+            z-index: -1;
+            opacity: 0.8;
+        }
+
+        @keyframes spinRing {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Inner glow effect */
+        .whatsapp-float::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            bottom: 5px;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: innerPulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes innerPulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+        }
+
+        /* WhatsApp icon styling */
+        .whatsapp-float i {
+            position: relative;
+            z-index: 2;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+
+        @keyframes badgeJump {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes badgeShake {
+            0%, 100% {
+                transform: rotate(0deg);
+            }
+            25% {
+                transform: rotate(-5deg);
+            }
+            75% {
+                transform: rotate(5deg);
+            }
+        }
+
+        /* Floating text label */
+        .whatsapp-label {
+            position: absolute;
+            bottom: 85px;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            white-space: nowrap;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .whatsapp-label::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid rgba(0, 0, 0, 0.8);
+        }
+
+        /* Hover effects */
+        .whatsapp-container:hover .whatsapp-float {
+            transform: scale(1.2) rotate(20deg);
+            animation-play-state: paused;
+            box-shadow: 
+                0 30px 60px rgba(37, 211, 102, 0.8),
+                0 0 0 25px rgba(37, 211, 102, 0.25),
+                0 0 0 50px rgba(37, 211, 102, 0.12);
+        }
+
+        .whatsapp-container:hover .whatsapp-label {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .whatsapp-container:hover .whatsapp-badge {
+            animation: badgeExplode 0.5s forwards;
+        }
+
+        @keyframes badgeExplode {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.5);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Click effect */
+        .whatsapp-float:active {
+            transform: scale(0.9);
+            transition: transform 0.1s;
+        }
+
+        /* Particle effects container */
+        .particles-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
 
         footer {
             background: var(--dark-bg);
@@ -475,7 +669,6 @@
             text-align: center;
             padding: 40px 20px;
             margin-top: auto;
-            /* UPDATED: Reduced from 30px to 15px */
             border-radius: 15px 15px 0 0; 
             position: relative; 
             overflow: hidden; 
@@ -497,7 +690,6 @@
         .accent-border {
             position: relative; 
             overflow: hidden; 
-            /* Remove original border and rely on the moving glow border */
             border: none !important;
             box-shadow: var(--shadow-3d); 
             transition: box-shadow 0.3s ease;
@@ -511,8 +703,6 @@
             width: 200%;
             height: 200%;
             z-index: -1; 
-
-            /* Conical Gradient for the sweeping line effect */
             background: conic-gradient(
                 transparent 0deg, 
                 transparent 100deg, 
@@ -522,12 +712,10 @@
                 transparent 260deg, 
                 transparent 360deg
             );
-            
             animation: rotate-border 4s linear infinite; 
             will-change: transform;
         }
         
-        /* Overlay to restore the element's interior background and hide the center of the rotating gradient */
         .accent-border::after {
             content: '';
             position: absolute;
@@ -536,30 +724,24 @@
             right: 2px;
             bottom: 2px;
             z-index: 0;
-            
-            /* Inherit background/blur for header and use dark-bg for footer */
             background: inherit; 
             border-radius: inherit;
-            
-            /* Header-specific glassy effect */
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
         }
 
-        /* Footer Overlay: Needs to use the dark-bg variable explicitly */
         footer.accent-border::after {
             background: var(--dark-bg);
             backdrop-filter: none;
         }
         
-        /* Ensure the logo/content stays on top of the overlay */
         .header *, footer * {
             z-index: 1;
             position: relative;
         }
 
         /* =========================================
-            7. RESPONSIVENESS
+            9. RESPONSIVENESS
             ========================================= */
         @media (min-width: 769px) {
             .grid-row { 
@@ -574,12 +756,64 @@
 
         @media (max-width: 768px) {
             .slider-frame { height: 280px; }
-            /* Mobile header radius reduced to match desktop update */
             .header { padding: 10px 20px; border-radius: 12px; } 
             .header-logo img { max-height: 45px; }
             .contact-card { grid-template-columns: 1fr; }
             .contact-visual { text-align: center; padding: 30px; }
             .contact-links { grid-template-columns: 1fr; }
+            
+            .ticker-updates-text {
+                display: none;
+            }
+            .news-ticker-bar .ticker-badge {
+                padding: 0 15px;
+            }
+            
+            /* WhatsApp mobile adjustments */
+            .whatsapp-container {
+                bottom: 20px;
+                right: 20px;
+            }
+            
+            .whatsapp-float {
+                width: 65px;
+                height: 65px;
+                font-size: 32px;
+                animation: floatBounce 4s ease-in-out infinite, glowPulse 3s ease-in-out infinite;
+            }
+            
+            .whatsapp-badge {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                top: -5px;
+                right: -5px;
+            }
+            
+            .whatsapp-label {
+                font-size: 12px;
+                padding: 6px 12px;
+                bottom: 75px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .whatsapp-container {
+                bottom: 15px;
+                right: 15px;
+            }
+            
+            .whatsapp-float {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+            
+            .whatsapp-badge {
+                width: 24px;
+                height: 24px;
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -599,16 +833,16 @@
 
     <div class="ticker-container">
         <div class="news-ticker-bar vibrate-and-play-link">
-            <div class="ticker-badge">LIVE UPDATES</div>
+            <div class="ticker-badge">LIVE <span class="ticker-updates-text">UPDATES</span></div>
             <div class="ticker-wrapper">
                 <div class="ticker-content">
                     <div class="ticker-item"><i class="fas fa-bolt"></i> Welcome to the premium Reben Portal.</div>
-                    <div class="ticker-item"><i class="fas fa-check-circle"></i> Station Inspections live from Dec 13, 2025.</div>
-                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Q3 Targets exceeded by 15%.</div>
-                    <div class="ticker-item"><i class="fas fa-sync-alt"></i> New Data Sync Protocol activated.</div>
+                    <div class="ticker-item"><i class="fas fa-check-circle"></i> For more information, schedule a meeting with our CEO, Eng. Mohamed Fawzy.</div>
+                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Q3 Targets exceeded by 25%.</div>
+                    <div class="ticker-item"><i class="fas fa-sync-alt"></i> Soon we are opening 5 more station in Riyadh region.</div>
                     <div class="ticker-item"><i class="fas fa-bolt"></i> Welcome to the premium Reben Portal.</div>
-                    <div class="ticker-item"><i class="fas fa-check-circle"></i> Station Inspections live from Dec 13, 2025.</div>
-                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Q3 Targets exceeded by 15%.</div>
+                    <div class="ticker-item"><i class="fas fa-check-circle"></i> Station Inspections live from Dec 16- 2025.</div>
+                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Contact Us For  Franchise.</div>
                     <div class="ticker-item"><i class="fas fa-sync-alt"></i> New Data Sync Protocol activated.</div>
                 </div>
             </div>
@@ -762,9 +996,15 @@
         </a>
     </div>
 
-    <a href="https://wa.me/573008727?text=Assalamu Alaikum" target="_blank" class="whatsapp-float vibrate-and-play-link">
-        <i class="fab fa-whatsapp"></i>
-    </a>
+    <!-- Enhanced WhatsApp Icon -->
+    <div class="whatsapp-container">
+        <div class="whatsapp-label">Chat with us!</div>
+        <div class="whatsapp-badge"></div>
+        <a href="https://wa.me/573008727?text=Assalamu Alaikum" target="_blank" class="whatsapp-float vibrate-and-play-link">
+            <i class="fab fa-whatsapp"></i>
+            <div class="particles-container"></div>
+        </a>
+    </div>
 
     <footer class="accent-border">
         <p>© 2025 Reben Company. All Rights Reserved.</p>
@@ -797,18 +1037,13 @@
             let isSyncing = false;
             let syncTimeout;
 
-            // This ensures we only attach logic if multiple rows exist
             if (rows.length > 0) {
                 rows.forEach(row => {
                     row.addEventListener('scroll', function() {
-                        // Check if we are on mobile (screen width < 769px)
                         if (window.innerWidth >= 769) return;
-                        
-                        // Prevent infinite loop: if a programmatic scroll is happening, stop.
                         if (isSyncing) return;
 
                         isSyncing = true;
-                        
                         const currentScrollLeft = this.scrollLeft;
 
                         rows.forEach(otherRow => {
@@ -817,7 +1052,6 @@
                             }
                         });
 
-                        // Release the lock after a short delay
                         clearTimeout(syncTimeout);
                         syncTimeout = setTimeout(() => {
                             isSyncing = false;
@@ -860,10 +1094,186 @@
                 });
             });
 
-            // Start Slider
             if (slides.length > 0) {
                 showSlide(0);
                 startAuto();
+            }
+
+            // --- 4. Enhanced WhatsApp Effects ---
+            const whatsappIcon = document.querySelector('.whatsapp-float');
+            const particlesContainer = document.querySelector('.particles-container');
+            let particleInterval;
+
+            if (whatsappIcon) {
+                // Create continuous particle stream
+                function createParticleStream() {
+                    if (particleInterval) clearInterval(particleInterval);
+                    
+                    particleInterval = setInterval(() => {
+                        if (document.hidden) return;
+                        
+                        const particle = document.createElement('div');
+                        particle.className = 'whatsapp-particle';
+                        particle.style.cssText = `
+                            position: absolute;
+                            width: 4px;
+                            height: 4px;
+                            background: #25d366;
+                            border-radius: 50%;
+                            pointer-events: none;
+                            z-index: 1;
+                            top: ${Math.random() * 100}%;
+                            left: ${Math.random() * 100}%;
+                            opacity: ${0.3 + Math.random() * 0.7};
+                            animation: particleFloat ${1 + Math.random() * 2}s ease-out forwards;
+                        `;
+                        
+                        particlesContainer.appendChild(particle);
+                        
+                        setTimeout(() => {
+                            if (particle.parentNode) {
+                                particle.remove();
+                            }
+                        }, 2000);
+                    }, 300);
+                }
+
+                // Add particle float animation
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes particleFloat {
+                        0% {
+                            transform: translate(0, 0) scale(1);
+                            opacity: 1;
+                        }
+                        100% {
+                            transform: translate(${Math.random() * 60 - 30}px, -100px) scale(0);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+
+                // Start particle stream
+                createParticleStream();
+
+                // Pause on hover
+                whatsappIcon.addEventListener('mouseenter', () => {
+                    if (particleInterval) clearInterval(particleInterval);
+                });
+
+                whatsappIcon.addEventListener('mouseleave', () => {
+                    createParticleStream();
+                });
+
+                // Enhanced click effect
+                whatsappIcon.addEventListener('click', function(e) {
+                    // Click sound
+                    const clickSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3');
+                    clickSound.volume = 0.3;
+                    clickSound.play().catch(() => {});
+                    
+                    // Create explosion of particles
+                    for (let i = 0; i < 15; i++) {
+                        createExplosionParticle(e);
+                    }
+                    
+                    // Create ring wave
+                    createRingWave();
+                    
+                    // Change badge number temporarily
+                    const badge = document.querySelector('.whatsapp-badge');
+                    if (badge) {
+                        const originalText = badge.textContent;
+                        badge.textContent = '✓';
+                        badge.style.background = 'linear-gradient(135deg, #25d366 0%, #1da851 100%)';
+                        
+                        setTimeout(() => {
+                            badge.textContent = originalText;
+                            badge.style.background = 'linear-gradient(135deg, var(--primary) 0%, #ff4066 100%)';
+                        }, 1500);
+                    }
+                });
+                
+                function createExplosionParticle(e) {
+                    const particle = document.createElement('div');
+                    const size = 6 + Math.random() * 8;
+                    const color = Math.random() > 0.5 ? '#25d366' : '#dcf8c6';
+                    
+                    particle.style.cssText = `
+                        position: fixed;
+                        left: ${e.clientX}px;
+                        top: ${e.clientY}px;
+                        width: ${size}px;
+                        height: ${size}px;
+                        background: ${color};
+                        border-radius: 50%;
+                        pointer-events: none;
+                        z-index: 1000;
+                        box-shadow: 0 0 10px ${color};
+                    `;
+                    
+                    document.body.appendChild(particle);
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 3 + Math.random() * 5;
+                    const vx = Math.cos(angle) * speed;
+                    const vy = Math.sin(angle) * speed;
+                    
+                    let opacity = 1;
+                    let scale = 1;
+                    const animate = () => {
+                        opacity -= 0.02;
+                        scale -= 0.01;
+                        particle.style.opacity = opacity;
+                        particle.style.transform = `translate(${vx}px, ${vy}px) scale(${scale})`;
+                        
+                        if (opacity > 0) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            particle.remove();
+                        }
+                    };
+                    animate();
+                    
+                    setTimeout(() => particle.remove(), 1000);
+                }
+                
+                function createRingWave() {
+                    const ring = document.createElement('div');
+                    ring.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 100px;
+                        height: 100px;
+                        border: 3px solid #25d366;
+                        border-radius: 50%;
+                        pointer-events: none;
+                        z-index: 999;
+                        animation: ringExpand 1s ease-out forwards;
+                    `;
+                    
+                    document.body.appendChild(ring);
+                    
+                    const ringStyle = document.createElement('style');
+                    ringStyle.textContent = `
+                        @keyframes ringExpand {
+                            0% {
+                                transform: translate(-50%, -50%) scale(0.5);
+                                opacity: 1;
+                            }
+                            100% {
+                                transform: translate(-50%, -50%) scale(2);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(ringStyle);
+                    
+                    setTimeout(() => ring.remove(), 1000);
+                }
             }
         });
     </script>
