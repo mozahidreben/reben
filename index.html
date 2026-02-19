@@ -562,6 +562,27 @@
             transition: all 0.3s ease;
         }
 
+        @keyframes badgeJump {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+
+        @keyframes badgeShake {
+            0%, 100% {
+                transform: rotate(0deg);
+            }
+            25% {
+                transform: rotate(-5deg);
+            }
+            75% {
+                transform: rotate(5deg);
+            }
+        }
+
         /* Floating text label */
         .whatsapp-label {
             position: absolute;
@@ -606,6 +627,22 @@
         .whatsapp-container:hover .whatsapp-label {
             opacity: 1;
             transform: translateY(0);
+        }
+
+        .whatsapp-container:hover .whatsapp-badge {
+            animation: badgeExplode 0.5s forwards;
+        }
+
+        @keyframes badgeExplode {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.5);
+            }
+            100% {
+                transform: scale(1);
+            }
         }
 
         /* Click effect */
@@ -704,137 +741,7 @@
         }
 
         /* =========================================
-            9. AUTH MODAL STYLES (SIMPLE 2-FIELD DESIGN)
-            ========================================= */
-        .auth-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            opacity: 0;
-            visibility: hidden;
-            transition: 0.2s ease;
-        }
-        .auth-overlay.show {
-            opacity: 1;
-            visibility: visible;
-        }
-        .auth-modal {
-            background: white;
-            max-width: 380px;
-            width: 90%;
-            border-radius: 30px;
-            padding: 30px 25px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
-            transform: scale(0.9);
-            transition: 0.2s;
-            text-align: center;
-            border: 2px solid var(--primary);
-        }
-        .auth-overlay.show .auth-modal {
-            transform: scale(1);
-        }
-        .auth-modal i {
-            font-size: 3rem;
-            color: var(--primary);
-            margin-bottom: 10px;
-        }
-        .auth-modal h3 {
-            font-weight: 700;
-            margin-bottom: 20px;
-            color: var(--text-main);
-        }
-        .auth-input {
-            width: 100%;
-            padding: 15px 18px;
-            border: 1px solid #ddd;
-            border-radius: 50px;
-            margin-bottom: 15px;
-            font-size: 1rem;
-            transition: 0.2s;
-        }
-        .auth-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(255,15,57,0.2);
-        }
-        .auth-row {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-        .auth-row .auth-input {
-            flex: 1;
-        }
-        .auth-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 50px;
-            padding: 14px 25px;
-            font-weight: 700;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: 0.2s;
-            width: 100%;
-            box-shadow: 0 8px 20px rgba(255,15,57,0.3);
-            margin-top: 10px;
-        }
-        .auth-btn:hover {
-            background: var(--primary-dark);
-            transform: scale(1.02);
-        }
-        .auth-error {
-            color: #d32f2f;
-            font-size: 0.85rem;
-            margin-top: 10px;
-            min-height: 20px;
-        }
-        .auth-close {
-            position: absolute;
-            top: 18px;
-            right: 20px;
-            font-size: 1.4rem;
-            cursor: pointer;
-            color: #aaa;
-        }
-        .auth-close:hover {
-            color: var(--primary);
-        }
-
-        /* Loading indicator */
-        .auth-loading {
-            display: none;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin: 10px 0;
-            color: var(--primary);
-        }
-        .auth-loading.show {
-            display: flex;
-        }
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* =========================================
-            10. RESPONSIVENESS
+            9. RESPONSIVENESS
             ========================================= */
         @media (min-width: 769px) {
             .grid-row { 
@@ -875,6 +782,14 @@
                 animation: floatBounce 4s ease-in-out infinite, glowPulse 3s ease-in-out infinite;
             }
             
+            .whatsapp-badge {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+                top: -5px;
+                right: -5px;
+            }
+            
             .whatsapp-label {
                 font-size: 12px;
                 padding: 6px 12px;
@@ -892,6 +807,12 @@
                 width: 60px;
                 height: 60px;
                 font-size: 28px;
+            }
+            
+            .whatsapp-badge {
+                width: 24px;
+                height: 24px;
+                font-size: 10px;
             }
         }
     </style>
@@ -1085,208 +1006,12 @@
         </a>
     </div>
 
-    <!-- SIMPLE 2-FIELD AUTH MODAL - Mobile/Username + OTP/Password -->
-    <div class="auth-overlay" id="authOverlay">
-        <div class="auth-modal">
-            <i class="fas fa-lock"></i>
-            <h3>Quick Access · Verification</h3>
-            <div class="auth-loading" id="authLoading">
-                <div class="spinner"></div>
-                <span>Loading users...</span>
-            </div>
-            <!-- First field: accepts mobile number OR username -->
-            <input type="text" id="authIdentifier" class="auth-input" placeholder="Mobile number or Username" value="">
-            <!-- Second field: accepts OTP OR password -->
-            <div class="auth-row">
-                <input type="password" id="authSecret" class="auth-input" placeholder="OTP or Password" value="">
-            </div>
-            <button class="auth-btn" id="authSubmit"><i class="fas fa-check-circle"></i> Verify & continue</button>
-            <div class="auth-error" id="authError"></div>
-            <div class="auth-close" id="authClose"><i class="fas fa-times"></i></div>
-        </div>
-    </div>
-
     <footer class="accent-border">
         <p>© 2025 Reben Company. All Rights Reserved.</p>
         <p style="font-size: 0.8rem; margin-top: 5px;">Designed by Mozahid</p>
     </footer>
 
     <script>
-        // =========================================
-        // SIMPLE DUAL AUTHENTICATION - 2 Fields Only
-        // =========================================
-        (function() {
-            // REPLACE THIS WITH YOUR GOOGLE SHEET CSV URL
-            const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSNny3A5pwcxSn4wonlcaPwBNb8tyo8rCM_gtmhR_vJeQh0Zwwo07POJzH84tMF1b1lKsaSPDeZWoDJ/pub?output=csv';
-            
-            // User database - stores users by BOTH mobile AND username
-            let USERS = {
-                // Mobile-based entries
-                "573008727": { type: "mobile", otp: "1717", username: "admin", password: "admin123" },
-                "501234567": { type: "mobile", otp: "2525", username: "john", password: "john2025" },
-                "559876543": { type: "mobile", otp: "3636", username: "sarah", password: "sarah2025" },
-                "551112233": { type: "mobile", otp: "4747", username: "mike", password: "mike2025" },
-                "537679624": { type: "mobile", otp: "1111", username: "Fawzy", password: "CEO" },
-                
-                // Username-based entries (same users, different key)
-                "admin": { type: "username", mobile: "573008727", otp: "1717", password: "admin123" },
-                "john": { type: "username", mobile: "501234567", otp: "2525", password: "john2025" },
-                "sarah": { type: "username", mobile: "559876543", otp: "3636", password: "sarah2025" },
-                "mike": { type: "username", mobile: "551112233", otp: "4747", password: "mike2025" },
-                "lisa": { type: "username", mobile: "554445566", otp: "5858", password: "lisa2025" }
-            };
-            
-            let pendingHref = null;
-            
-            const overlay = document.getElementById('authOverlay');
-            const identifierInput = document.getElementById('authIdentifier');
-            const secretInput = document.getElementById('authSecret');
-            const errorDiv = document.getElementById('authError');
-            const submitBtn = document.getElementById('authSubmit');
-            const closeBtn = document.getElementById('authClose');
-            const loadingDiv = document.getElementById('authLoading');
-
-            // Load users from Google Sheets
-            function loadUsersFromSheet() {
-                loadingDiv.classList.add('show');
-                
-                fetch(GOOGLE_SHEET_CSV_URL, { 
-                    cache: 'no-store',
-                    headers: { 'Cache-Control': 'no-cache' }
-                })
-                    .then(response => response.text())
-                    .then(csv => {
-                        const lines = csv.split('\n');
-                        let newUsers = 0;
-                        
-                        // Skip header row
-                        for (let i = 1; i < lines.length; i++) {
-                            const line = lines[i].trim();
-                            if (line === '') continue;
-                            
-                            // Parse CSV columns: Mobile,OTP,Username,Password
-                            const columns = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
-                            if (columns.length >= 4) {
-                                const mobile = columns[0].replace(/"/g, '').trim().replace(/\D/g, '');
-                                const otp = columns[1].replace(/"/g, '').trim().replace(/\D/g, '');
-                                const username = columns[2].replace(/"/g, '').trim();
-                                const password = columns[3].replace(/"/g, '').trim();
-                                
-                                // Store by mobile
-                                if (mobile && otp) {
-                                    USERS[mobile] = { type: "mobile", otp, username, password };
-                                    newUsers++;
-                                }
-                                // Store by username
-                                if (username && password) {
-                                    USERS[username] = { type: "username", mobile, otp, password };
-                                    newUsers++;
-                                }
-                            }
-                        }
-                        
-                        console.log(`Loaded ${newUsers} user records`);
-                        loadingDiv.classList.remove('show');
-                    })
-                    .catch(error => {
-                        console.error('Error loading users:', error);
-                        loadingDiv.classList.remove('show');
-                    });
-            }
-
-            // Load users when page loads
-            loadUsersFromSheet();
-            setInterval(loadUsersFromSheet, 5 * 60 * 1000);
-
-            // Close modal function
-            function closeAuth() {
-                overlay.classList.remove('show');
-                pendingHref = null;
-                identifierInput.value = '';
-                secretInput.value = '';
-                errorDiv.innerText = '';
-            }
-
-            // Intercept clicks on all Quick Access cards
-            document.querySelectorAll('.card').forEach(card => {
-                card.addEventListener('click', function(e) {
-                    const href = this.getAttribute('href');
-                    if (!href || href === '#' || href.trim() === '') return;
-                    
-                    e.preventDefault();
-                    pendingHref = href;
-                    overlay.classList.add('show');
-                    identifierInput.focus();
-                });
-            });
-
-            // Verify credentials - works for BOTH authentication methods
-            submitBtn.addEventListener('click', function() {
-                const identifier = identifierInput.value.trim(); // Can be mobile OR username
-                const secret = secretInput.value.trim(); // Can be OTP OR password
-                
-                if (!identifier || !secret) {
-                    errorDiv.innerText = 'Please enter both fields';
-                    return;
-                }
-                
-                // Find user by whatever they entered (mobile or username)
-                const user = USERS[identifier];
-                
-                if (!user) {
-                    errorDiv.innerText = 'User not found. Access denied.';
-                    secretInput.value = '';
-                    secretInput.focus();
-                    return;
-                }
-                
-                // Check credentials based on user type
-                if (user.type === "mobile") {
-                    // Mobile user - verify OTP
-                    if (user.otp === secret) {
-                        // Success!
-                        errorDiv.innerText = '';
-                        if (pendingHref) {
-                            window.open(pendingHref, '_blank');
-                        }
-                        closeAuth();
-                    } else {
-                        errorDiv.innerText = 'Invalid OTP. Access denied.';
-                        secretInput.value = '';
-                        secretInput.focus();
-                    }
-                } else if (user.type === "username") {
-                    // Username user - verify password
-                    if (user.password === secret) {
-                        // Success!
-                        errorDiv.innerText = '';
-                        if (pendingHref) {
-                            window.open(pendingHref, '_blank');
-                        }
-                        closeAuth();
-                    } else {
-                        errorDiv.innerText = 'Invalid password. Access denied.';
-                        secretInput.value = '';
-                        secretInput.focus();
-                    }
-                }
-            });
-
-            // Enter key in secret field
-            secretInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') submitBtn.click();
-            });
-
-            // Close modal
-            closeBtn.addEventListener('click', closeAuth);
-            overlay.addEventListener('click', function(e) {
-                if (e.target === overlay) closeAuth();
-            });
-        })();
-
-        // =========================================
-        // ORIGINAL SCRIPT (Slider, Sync, WhatsApp)
-        // =========================================
         document.addEventListener("DOMContentLoaded", () => {
             
             // --- 1. Audio & Vibration Logic ---
@@ -1456,86 +1181,99 @@
                     // Create ring wave
                     createRingWave();
                     
-                    function createExplosionParticle(e) {
-                        const particle = document.createElement('div');
-                        const size = 6 + Math.random() * 8;
-                        const color = Math.random() > 0.5 ? '#25d366' : '#dcf8c6';
+                    // Change badge number temporarily
+                    const badge = document.querySelector('.whatsapp-badge');
+                    if (badge) {
+                        const originalText = badge.textContent;
+                        badge.textContent = '✓';
+                        badge.style.background = 'linear-gradient(135deg, #25d366 0%, #1da851 100%)';
                         
-                        particle.style.cssText = `
-                            position: fixed;
-                            left: ${e.clientX}px;
-                            top: ${e.clientY}px;
-                            width: ${size}px;
-                            height: ${size}px;
-                            background: ${color};
-                            border-radius: 50%;
-                            pointer-events: none;
-                            z-index: 1000;
-                            box-shadow: 0 0 10px ${color};
-                        `;
-                        
-                        document.body.appendChild(particle);
-                        
-                        const angle = Math.random() * Math.PI * 2;
-                        const speed = 3 + Math.random() * 5;
-                        const vx = Math.cos(angle) * speed;
-                        const vy = Math.sin(angle) * speed;
-                        
-                        let opacity = 1;
-                        let scale = 1;
-                        const animate = () => {
-                            opacity -= 0.02;
-                            scale -= 0.01;
-                            particle.style.opacity = opacity;
-                            particle.style.transform = `translate(${vx}px, ${vy}px) scale(${scale})`;
-                            
-                            if (opacity > 0) {
-                                requestAnimationFrame(animate);
-                            } else {
-                                particle.remove();
-                            }
-                        };
-                        animate();
-                        
-                        setTimeout(() => particle.remove(), 1000);
-                    }
-                    
-                    function createRingWave() {
-                        const ring = document.createElement('div');
-                        ring.style.cssText = `
-                            position: fixed;
-                            top: 50%;
-                            left: 50%;
-                            transform: translate(-50%, -50%);
-                            width: 100px;
-                            height: 100px;
-                            border: 3px solid #25d366;
-                            border-radius: 50%;
-                            pointer-events: none;
-                            z-index: 999;
-                            animation: ringExpand 1s ease-out forwards;
-                        `;
-                        
-                        document.body.appendChild(ring);
-                        
-                        const ringStyle = document.createElement('style');
-                        ringStyle.textContent = `
-                            @keyframes ringExpand {
-                                0% {
-                                    transform: translate(-50%, -50%) scale(0.5);
-                                    opacity: 1;
-                                }
-                                100% {
-                                    transform: translate(-50%, -50%) scale(2);
-                                    opacity: 0;
-                                }
-                            }
-                        `;
-                        document.head.appendChild(ringStyle);
-                        
-                        setTimeout(() => ring.remove(), 1000);
+                        setTimeout(() => {
+                            badge.textContent = originalText;
+                            badge.style.background = 'linear-gradient(135deg, var(--primary) 0%, #ff4066 100%)';
+                        }, 1500);
                     }
                 });
+                
+                function createExplosionParticle(e) {
+                    const particle = document.createElement('div');
+                    const size = 6 + Math.random() * 8;
+                    const color = Math.random() > 0.5 ? '#25d366' : '#dcf8c6';
+                    
+                    particle.style.cssText = `
+                        position: fixed;
+                        left: ${e.clientX}px;
+                        top: ${e.clientY}px;
+                        width: ${size}px;
+                        height: ${size}px;
+                        background: ${color};
+                        border-radius: 50%;
+                        pointer-events: none;
+                        z-index: 1000;
+                        box-shadow: 0 0 10px ${color};
+                    `;
+                    
+                    document.body.appendChild(particle);
+                    
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 3 + Math.random() * 5;
+                    const vx = Math.cos(angle) * speed;
+                    const vy = Math.sin(angle) * speed;
+                    
+                    let opacity = 1;
+                    let scale = 1;
+                    const animate = () => {
+                        opacity -= 0.02;
+                        scale -= 0.01;
+                        particle.style.opacity = opacity;
+                        particle.style.transform = `translate(${vx}px, ${vy}px) scale(${scale})`;
+                        
+                        if (opacity > 0) {
+                            requestAnimationFrame(animate);
+                        } else {
+                            particle.remove();
+                        }
+                    };
+                    animate();
+                    
+                    setTimeout(() => particle.remove(), 1000);
+                }
+                
+                function createRingWave() {
+                    const ring = document.createElement('div');
+                    ring.style.cssText = `
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 100px;
+                        height: 100px;
+                        border: 3px solid #25d366;
+                        border-radius: 50%;
+                        pointer-events: none;
+                        z-index: 999;
+                        animation: ringExpand 1s ease-out forwards;
+                    `;
+                    
+                    document.body.appendChild(ring);
+                    
+                    const ringStyle = document.createElement('style');
+                    ringStyle.textContent = `
+                        @keyframes ringExpand {
+                            0% {
+                                transform: translate(-50%, -50%) scale(0.5);
+                                opacity: 1;
+                            }
+                            100% {
+                                transform: translate(-50%, -50%) scale(2);
+                                opacity: 0;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(ringStyle);
+                    
+                    setTimeout(() => ring.remove(), 1000);
+                }
             }
         });
     </script>
