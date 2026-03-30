@@ -1426,13 +1426,7 @@
                 startAuto();
             }
 
-            // --- 4. Enhanced WhatsApp Effects ---
-            const whatsappIcon = document.querySelector('.whatsapp-float');
-            if(whatsappIcon) {
-                // Animation triggers for WhatsApp
-            }
-
-            // --- 5. Region to Dynamic Station Selection Logic ---
+            // --- 4. Region to Dynamic Station Selection Logic ---
             const regionStations = {
                 "Central": Array.from({length: 20}, (_, i) => `Central Station ${i + 1}`),
                 "East": Array.from({length: 20}, (_, i) => `East Station ${i + 1}`),
@@ -1461,23 +1455,28 @@
                 });
             }
 
-            // --- 6. GOOGLE SHEET DATABASE SEARCH & MODAL LOGIC ---
+            // --- 5. GOOGLE SHEET DATABASE SEARCH (INDEPENDENT SEARCH BOXES) ---
             const searchBtn = document.querySelector('.search-db-btn');
             const modalOverlay = document.getElementById('resultsModal');
             const closeModal = document.getElementById('closeModal');
             const modalBody = document.getElementById('modalBody');
 
             const GOOGLE_APP_SCRIPT_URLS = [
-                "https://script.google.com/macros/s/AKfycbwd7k8msohj1xhtZLTb3AnbuIqc-2J-8gtjg9pX_A5hzTMJ3lYnE7cmIHuTkWJa19WE/exec"
+                "https://script.google.com/macros/s/AKfycbyV6z0_4IBm_3UD6yrl6xMa6XvQ0D6_VJbS2LJdeu4Enshr1_cc-b6IANplbc9agwcD/exec"
             ]; 
 
             if (searchBtn && regionSelect && stationInput && categoryInput) {
                 searchBtn.addEventListener('click', async () => {
-                    const region = regionSelect.value;
-                    const station = stationInput.value;
-                    const category = categoryInput.value;
+                    // Trim values for clean search
+                    const regionRaw = regionSelect.value;
+                    const stationRaw = stationInput.value.trim();
+                    const categoryRaw = categoryInput.value.trim();
+                    
+                    const region = regionRaw && regionRaw !== "" ? regionRaw : null;
+                    const station = stationRaw && stationRaw !== "" ? stationRaw : null;
+                    const category = categoryRaw && categoryRaw !== "" ? categoryRaw : null;
 
-                    // UPDATED LOGIC: Allow search if AT LEAST ONE field is filled
+                    // ENSURE at least one criteria is provided (Independent search)
                     if (!region && !station && !category) {
                         alert("Please provide at least one search criteria (Region, Item, or Category).");
                         return;
@@ -1487,14 +1486,23 @@
                     modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Searching data wait patiently.</p>';
 
                     try {
-                        const fetchPromises = GOOGLE_APP_SCRIPT_URLS.map(url => 
-                            fetch(`${url}?region=${encodeURIComponent(region || '')}&station=${encodeURIComponent(station || '')}&category=${encodeURIComponent(category || '')}`)
+                        // Build dynamic URL with only the parameters that are filled (makes search independent)
+                        const fetchPromises = GOOGLE_APP_SCRIPT_URLS.map(baseUrl => {
+                            const params = new URLSearchParams();
+                            if (region) params.append('region', region);
+                            if (station) params.append('station', station);
+                            if (category) params.append('category', category);
+                            
+                            const queryString = params.toString();
+                            const fullUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+                            
+                            return fetch(fullUrl)
                                 .then(res => res.json())
                                 .catch(err => {
-                                    console.error(`Error fetching from ${url}:`, err);
+                                    console.error(`Error fetching from ${baseUrl}:`, err);
                                     return []; 
-                                })
-                        );
+                                });
+                        });
 
                         const resultsArrays = await Promise.all(fetchPromises);
                         const combinedData = resultsArrays.flat();
