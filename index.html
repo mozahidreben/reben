@@ -949,6 +949,9 @@
             transform: translateY(20px); transition: transform 0.3s ease;
             max-height: 80vh; overflow-y: auto;
         }
+        .modal-content {
+            padding-bottom: 80px;
+        }
         .modal-overlay.active .modal-content { transform: translateY(0); }
         .modal-close {
             position: absolute; top: 20px; right: 20px; background: #fff5f6;
@@ -1042,6 +1045,49 @@
             .modal-action-btns, .modal-close {
                 display: none !important;
             }
+            .modal-navigation-buttons {
+                display: none !important;
+            }
+        }
+
+        /* Single dynamic arrow - hidden by default, shown only when needed */
+        .modal-navigation-buttons {
+            position: sticky;
+            bottom: 15px;
+            display: flex;
+            justify-content: flex-end;
+            pointer-events: auto;
+            margin-top: 15px;
+            z-index: 15;
+            visibility: hidden;
+            opacity: 0;
+            transition: visibility 0.2s, opacity 0.2s;
+        }
+        .modal-navigation-buttons.visible {
+            visibility: visible;
+            opacity: 1;
+        }
+        .nav-arrow {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+            color: var(--primary);
+            font-size: 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        .nav-arrow:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+            border-color: var(--primary);
         }
     </style>
 </head>
@@ -1316,7 +1362,7 @@
     <div class="whatsapp-container">
         <div class="whatsapp-label">Chat with us!</div>
         <div class="whatsapp-badge"></div>
-        <a href="https://wa.me/573008727?text=Assalamu Alaikum" target="_blank" class="whatsapp-float vibrate-and-play-link">
+        <a href="https://wa.me/+966573008727?text=Assalamu Alaikum" target="_blank" class="whatsapp-float vibrate-and-play-link">
             <i class="fab fa-whatsapp"></i>
             <div class="particles-container"></div>
         </a>
@@ -1330,6 +1376,9 @@
             </div>
             <div class="modal-body" id="modalBody">
                 </div>
+            <div class="modal-navigation-buttons" id="modalNavButtons">
+                <button class="nav-arrow" id="dynamicArrowBtn" title="Scroll to opposite end"><i class="fas fa-arrow-down"></i></button>
+            </div>
         </div>
     </div>
 
@@ -1460,11 +1509,48 @@
             const modalOverlay = document.getElementById('resultsModal');
             const closeModal = document.getElementById('closeModal');
             const modalBody = document.getElementById('modalBody');
+            const modalContentElem = document.querySelector('#resultsModal .modal-content');
+            const navButtons = document.getElementById('modalNavButtons');
+            const dynamicArrowBtn = document.getElementById('dynamicArrowBtn');
 
             const GOOGLE_APP_SCRIPT_URLS = [
                 "https://script.google.com/macros/s/AKfycbz57t_a7I5thk1BUcN1ES88HhPGosPHlW2tACdzNhHQnP5NYd0_3fjvAHLrazH_5NUV/exec",
                 "https://script.google.com/macros/s/AKfycbx-4YyzmLigI0bNSYmXN8KzazrRVLip-EeUf0R1EsJ_fBle44YXaYYiX2JCyXrMWp_0Jw/exec"
+
             ]; 
+
+            // Helper to toggle arrow visibility based on scrollable content
+            function toggleArrowVisibility() {
+                if (!modalContentElem || !navButtons) return;
+                const isOverflowing = modalContentElem.scrollHeight > modalContentElem.clientHeight;
+                if (isOverflowing) {
+                    navButtons.classList.add('visible');
+                } else {
+                    navButtons.classList.remove('visible');
+                }
+            }
+
+            // Helper to update arrow direction based on scroll position
+            function updateArrowDirection() {
+                if (!modalContentElem || !dynamicArrowBtn) return;
+                const scrollTop = modalContentElem.scrollTop;
+                const maxScroll = modalContentElem.scrollHeight - modalContentElem.clientHeight;
+                const isAtBottom = maxScroll - scrollTop <= 5;
+                if (isAtBottom) {
+                    dynamicArrowBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                    dynamicArrowBtn.title = "Go to top";
+                } else {
+                    dynamicArrowBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                    dynamicArrowBtn.title = "Go to bottom";
+                }
+            }
+
+            // Scroll event listener for modal
+            if (modalContentElem) {
+                modalContentElem.addEventListener('scroll', () => {
+                    updateArrowDirection();
+                });
+            }
 
             if (searchBtn && regionSelect && stationInput && categoryInput) {
                 searchBtn.addEventListener('click', async () => {
@@ -1485,6 +1571,8 @@
 
                     modalOverlay.classList.add('active');
                     modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Searching data wait patiently.</p>';
+                    // Hide arrow while loading
+                    if (navButtons) navButtons.classList.remove('visible');
 
                     try {
                         // Build dynamic URL with only the parameters that are filled (makes search independent)
@@ -1506,7 +1594,31 @@
                         });
 
                         const resultsArrays = await Promise.all(fetchPromises);
-                        const combinedData = resultsArrays.flat();
+                        let combinedData = resultsArrays.flat();
+
+                        // Exact Match Filter for Date and Search terms
+                        combinedData = combinedData.filter(item => {
+                            let matchRegion = !region;
+                            let matchStation = !station;
+                            let matchCategory = !category;
+
+                            const checkExact = (term, val) => {
+                                const sVal = String(val).toLowerCase();
+                                const sTerm = term.toLowerCase();
+                                if (sVal === sTerm) return true;
+                                const escaped = sTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                return new RegExp(`(^|\\W)${escaped}($|\\W)`, 'i').test(sVal);
+                            };
+
+                            for (const val of Object.values(item)) {
+                                if (val === null || val === undefined) continue;
+                                if (!matchRegion && checkExact(region, val)) matchRegion = true;
+                                if (!matchStation && checkExact(station, val)) matchStation = true;
+                                if (!matchCategory && checkExact(category, val)) matchCategory = true;
+                            }
+                            
+                            return matchRegion && matchStation && matchCategory;
+                        });
 
                         modalBody.innerHTML = ''; 
 
@@ -1530,6 +1642,7 @@
                             actionBtnsContainer.className = 'modal-action-btns';
                             actionBtnsContainer.innerHTML = `
                                 <button id="btn-print" title="Print Data" class="action-icon-btn"><i class="fas fa-print"></i></button>
+                                <span style="display: flex; align-items: center; font-weight: 600; font-size: 1rem; color: var(--text-main); margin-right: auto; margin-left: 5px;"> ${combinedData.length}</span>
                                 <button id="btn-excel" title="Download Excel" class="action-icon-btn"><i class="fas fa-file-excel"></i></button>
                                 <button id="btn-pdf" title="Download PDF" class="action-icon-btn"><i class="fas fa-file-pdf"></i></button>
                                 <button id="btn-wa-share" title="Share on WhatsApp" class="action-icon-btn wa-btn"><i class="fab fa-whatsapp"></i></button>
@@ -1607,8 +1720,15 @@
                                 window.open(`https://wa.me/?text=${encodeURIComponent(textToShare)}`, '_blank');
                             });
                         }
+
+                        // After populating, check if modal content is scrollable
+                        setTimeout(() => {
+                            toggleArrowVisibility();
+                            updateArrowDirection();
+                        }, 50);
                     } catch (error) {
                         modalBody.innerHTML = '<p style="text-align:center; color: var(--primary);">Error fetching data. Check connection.</p>';
+                        toggleArrowVisibility(); // hide arrow on error
                     }
                 });
             }
@@ -1618,6 +1738,28 @@
                 if (e.target === modalOverlay) modalOverlay.classList.remove('active'); 
             });
 
+            // --- 6. Single dynamic arrow click handler ---
+            if (dynamicArrowBtn && modalContentElem) {
+                dynamicArrowBtn.addEventListener('click', () => {
+                    const scrollTop = modalContentElem.scrollTop;
+                    const maxScroll = modalContentElem.scrollHeight - modalContentElem.clientHeight;
+                    const isAtBottom = maxScroll - scrollTop <= 5;
+                    if (isAtBottom) {
+                        modalContentElem.scrollTo({ top: 0, behavior: 'smooth' });
+                    } else {
+                        modalContentElem.scrollTo({ top: modalContentElem.scrollHeight, behavior: 'smooth' });
+                    }
+                });
+            }
+
+            // Also observe modal body for dynamic changes (in case of future updates)
+            if (modalBody && modalContentElem) {
+                const observer = new MutationObserver(() => {
+                    toggleArrowVisibility();
+                    updateArrowDirection();
+                });
+                observer.observe(modalBody, { childList: true, subtree: true, characterData: true });
+            }
         });
     </script>
 </body>
