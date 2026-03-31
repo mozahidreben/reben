@@ -1298,7 +1298,7 @@
                 <input id="category-input" list="category-options" class="custom-select border-grey" placeholder="Type or Select Category...">
                 <datalist id="category-options">
                     <option value="Category 1">
-                    <option value="Category 2">
+                    <option value="sale">
                     <option value="Category 3">
                 </datalist>
             </div>
@@ -1372,7 +1372,7 @@
         <div class="modal-content">
             <button class="modal-close" id="closeModal"><i class="fas fa-times"></i></button>
             <div class="modal-header">
-                <h3>Search Results</h3>
+                <h3>Designed By- Mozahid</h3>
             </div>
             <div class="modal-body" id="modalBody">
                 </div>
@@ -1477,11 +1477,11 @@
 
             // --- 4. Region to Dynamic Station Selection Logic ---
             const regionStations = {
-                "Central": Array.from({length: 20}, (_, i) => `Central Station ${i + 1}`),
-                "East": Array.from({length: 20}, (_, i) => `East Station ${i + 1}`),
-                "West": Array.from({length: 20}, (_, i) => `West Station ${i + 1}`),
-                "North": Array.from({length: 20}, (_, i) => `North Station ${i + 1}`),
-                "South": Array.from({length: 20}, (_, i) => `South Station ${i + 1}`)
+                "Central": Array.from({length: 50}, (_, i) => `Central Station ${i + 1}`),
+                "East": Array.from({length: 50}, (_, i) => `East Station ${i + 1}`),
+                "West": Array.from({length: 50}, (_, i) => `West Station ${i + 1}`),
+                "North": Array.from({length: 50}, (_, i) => `North Station ${i + 1}`),
+                "South": Array.from({length: 50}, (_, i) => `South Station ${i + 1}`)
             };
 
             const regionSelect = document.getElementById('region-select');
@@ -1490,6 +1490,20 @@
             const categoryInput = document.getElementById('category-input');
 
             if (regionSelect && stationInput && stationOptions) {
+                
+                // NEW: Populate all stations initially so auto-suggest works without selecting a region
+                const populateAllStations = () => {
+                    stationOptions.innerHTML = '';
+                    Object.values(regionStations).flat().forEach(station => {
+                        const option = document.createElement('option');
+                        option.value = station;
+                        stationOptions.appendChild(option);
+                    });
+                };
+                
+                // Call it immediately on load
+                populateAllStations();
+
                 regionSelect.addEventListener('change', function() {
                     const selectedRegion = this.value;
                     stationOptions.innerHTML = ''; 
@@ -1500,6 +1514,9 @@
                             option.value = station;
                             stationOptions.appendChild(option);
                         });
+                    } else {
+                        // If for some reason it's cleared, refill with all
+                        populateAllStations();
                     }
                 });
             }
@@ -1515,7 +1532,8 @@
 
             const GOOGLE_APP_SCRIPT_URLS = [
                 "https://script.google.com/macros/s/AKfycbz57t_a7I5thk1BUcN1ES88HhPGosPHlW2tACdzNhHQnP5NYd0_3fjvAHLrazH_5NUV/exec",
-                "https://script.google.com/macros/s/AKfycbx-4YyzmLigI0bNSYmXN8KzazrRVLip-EeUf0R1EsJ_fBle44YXaYYiX2JCyXrMWp_0Jw/exec"
+                "https://script.google.com/macros/s/AKfycbx-4YyzmLigI0bNSYmXN8KzazrRVLip-EeUf0R1EsJ_fBle44YXaYYiX2JCyXrMWp_0Jw/exec",
+                "https://script.google.com/macros/s/AKfycbzAFYs5bcTL5aB8uabFE99jVz7QGcLRwEvPaiXVmc-eYv2N-YfSgR4CcFgfolXxLVV_/exec"
 
             ]; 
 
@@ -1642,7 +1660,7 @@
                             actionBtnsContainer.className = 'modal-action-btns';
                             actionBtnsContainer.innerHTML = `
                                 <button id="btn-print" title="Print Data" class="action-icon-btn"><i class="fas fa-print"></i></button>
-                                <span style="display: flex; align-items: center; font-weight: 600; font-size: 1rem; color: var(--text-main); margin-right: auto; margin-left: 5px;"> ${combinedData.length}</span>
+                                <span style="display: flex; align-items: center; font-weight: 600; font-size: 1rem; color: var(--text-main); margin-right: auto; margin-left: 5px;">Total: ${combinedData.length}</span>
                                 <button id="btn-excel" title="Download Excel" class="action-icon-btn"><i class="fas fa-file-excel"></i></button>
                                 <button id="btn-pdf" title="Download PDF" class="action-icon-btn"><i class="fas fa-file-pdf"></i></button>
                                 <button id="btn-wa-share" title="Share on WhatsApp" class="action-icon-btn wa-btn"><i class="fab fa-whatsapp"></i></button>
