@@ -1278,7 +1278,7 @@
             <div class="input-group">
                 <label>SELECT REGION</label>
                 <select id="region-select" class="custom-select border-red">
-                    <option value="" disabled selected>Choose Below</option>
+                    <option value="" selected>All Regions / Clear</option>
                     <option value="Central">Central</option>
                     <option value="East">East</option>
                     <option value="West">West</option>
@@ -1299,6 +1299,8 @@
                 <datalist id="category-options">
                     <option value="Category 1">
                     <option value="sale">
+                    <option value="trip">
+                    <option value="Details">
                     <option value="Category 3">
                 </datalist>
             </div>
@@ -1475,13 +1477,41 @@
                 startAuto();
             }
 
-            // --- 4. Region to Dynamic Station Selection Logic ---
+            // --- 4. Region to Dynamic Station Selection Logic (UPDATED STATION LISTS) ---
             const regionStations = {
-                "Central": Array.from({length: 50}, (_, i) => `Central Station ${i + 1}`),
-                "East": Array.from({length: 50}, (_, i) => `East Station ${i + 1}`),
-                "West": Array.from({length: 50}, (_, i) => `West Station ${i + 1}`),
-                "North": Array.from({length: 50}, (_, i) => `North Station ${i + 1}`),
-                "South": Array.from({length: 50}, (_, i) => `South Station ${i + 1}`)
+                "Central": [
+                    "Khashra", "Hurmila", "Tharmada", "Hota 01", "Dariya", "Dawadmi Nora", "Bisha",
+                    "AL Kharaj", "AL Dar Baidah", "Aziziyah", "Bilal", "Badar", "Hota 02", "Khouf",
+                    "Damam Road", "Shediyah", "AL Reen", "Muhamadiya SHQ Rd", "Hanish", "Sagir 01",
+                    "Dharat laban", "Dilam", "Auj Shola", "AL Rass", "Dhurmah", "AL Ruweda",
+                    "Dawasir 02", "Dawasir 01", "Shawaiyah", "Tayri"
+                ],
+                "East": [
+                    "AL - Hasa 04", "AL - Hasa 05", "AL - Hasa 09", "Hafar AL Batin", "AL - Hasa 08",
+                    "AL - Hasa 10", "AL - Hasa 03", "AL - Hasa 07", "HASA 11 DHRN FSL", "Qaisumah"
+                ],
+                "West": [
+                    "REDWAN", "Yary", "Jeddah Rahmaniya", "Taif", "Ardiyah"
+                ],
+                "North": [
+                    "Rafha", "Domat", "AL Jouf", "Auqlia 01", "Auqlia 02", "Auqlia 03", "Arar"
+                ],
+                "South": [
+                    "Dharan AL Junub 2", "Thagar", "Nimra", "Shorora 02", "Najran 04", "Najran 03",
+                    "Najran 01", "Najran 02", "Najran 05", "Najran 06", "Najran 07", "Najran 08",
+                    "Naj-Sharf Markab", "Jizan Daheka",
+                    "ASHOK", "MUTAKIRU", "ABDULAI", "SALMAN", "KAMLESH", "AFROJ", "RASHID AMIDU",
+                    "PHEKAN YADAV", "PRADIP RAMTEL", "AITARAM TAMANG", "ATIF", "KRISHNA TAMANG",
+                    "MOHIN IRFAN", "ARUN THARU", "ABDUL MUTLIB", "SANJAY THARU", "FARMAN ALI",
+                    "SUHAIL KHAN", "MUSHAHID MALVA", "VIM NARAYAN", "SURINDRA MAHTO", "CHANDRA BAHADUR",
+                    "SADDAM", "BUDDA", "MOHAMMAD WASIM", "TIJANI MUSAH", "JIBRIL", "SUBHASH",
+                    "ABDULAI A RAHMAN", "FAISAL", "ISSAKA ABUBAKARI", "SAGAR RAM", "MAYAKYE",
+                    "GANESH LAMA", "SELMAN TAMANG", "FAROOQ", "MD. ALAM", "WASIM", "FAIZAN", "GULFAM",
+                    "IRFAN YAMEEN", "JISHAN IQBAL", "JISHAN MUSTAFA", "JUBAIR", "MAJID", "NAJIM",
+                    "SHAHE AALAM", "WASIM YUSUF", "HARIS", "JITENDRA", "MOHSIN", "NADEEM", "VAKEEL",
+                    "ALAY", "FURKAN", "NAUSHAD", "SHAHID", "WAJID", "ATIK", "JAMEEL", "ASIF", "SACHIN",
+                    "BABA ABUBAKARI"
+                ]
             };
 
             const regionSelect = document.getElementById('region-select');
