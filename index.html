@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reben | Premium Access</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Reben | Premium Access • Secure Portal</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     
     <style>
         /* =========================================
@@ -1089,6 +1093,17 @@
             transform: translateY(-2px);
             border-color: var(--primary);
         }
+        /* Custom styling for the top source tab name in results */
+        .source-tab-label {
+            display: block;
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px dashed rgba(255, 15, 57, 0.2);
+            padding-bottom: 5px;
+        }
     </style>
 </head>
 <body>
@@ -1385,12 +1400,29 @@
         </div>
     </div>
 
+    <div id="pdf-container" style="display:none;"></div>
+
     <footer class="accent-border">
         <p>© 2026 Reben Company. All Rights Reserved.</p>
         <p style="font-size: 0.8rem; margin-top: 5px;">Designed by Mozahid</p>
     </footer>
 
     <script>
+        /* =========================================
+           SECURITY NOTICE:
+           - Firebase API key is a public identifier and is safe to include.
+           - For maximum data safety, we enforce READ-ONLY Firebase Rules.
+           - Recommended Realtime Database Rules (apply in Firebase Console):
+             {
+               "rules": {
+                 ".read": "auth != null",
+                 ".write": false
+               }
+             }
+           - Anonymous authentication ensures only read access; write operations are fully blocked.
+           - No sensitive data is ever written from this client.
+        ========================================= */
+
         document.addEventListener("DOMContentLoaded", () => {
             
             // --- 1. Audio & Vibration Logic ---
@@ -1522,7 +1554,6 @@
 
             if (regionSelect && stationInput && stationOptions) {
                 
-                // NEW: Populate all stations initially so auto-suggest works without selecting a region
                 const populateAllStations = () => {
                     stationOptions.innerHTML = '';
                     Object.values(regionStations).flat().forEach(station => {
@@ -1532,7 +1563,6 @@
                     });
                 };
                 
-                // Call it immediately on load
                 populateAllStations();
 
                 regionSelect.addEventListener('change', function() {
@@ -1546,13 +1576,54 @@
                             stationOptions.appendChild(option);
                         });
                     } else {
-                        // If for some reason it's cleared, refill with all
                         populateAllStations();
                     }
                 });
             }
 
-            // --- 5. GOOGLE SHEET DATABASE SEARCH (INDEPENDENT SEARCH BOXES) ---
+            // --- 5. FIREBASE DATABASE SEARCH & ORDER RENDERING (READ-ONLY MODE) ---
+            
+            const firebaseConfig = {
+                apiKey: "AIzaSyD7vGoD5Q37rTJ6MySFQ8lhqJCfPFbyR8A",   // Public identifier (safe)
+                authDomain: "reben-4477f.firebaseapp.com",
+                databaseURL: "https://reben-4477f-default-rtdb.firebaseio.com",
+                projectId: "reben-4477f",
+                storageBucket: "reben-4477f.firebasestorage.app",
+                messagingSenderId: "581738457329",
+                appId: "1:581738457329:web:c3ed41b390f9be642fa150",
+                measurementId: "G-YDGYZMSYWM"
+            };
+            
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            const database = firebase.database();
+
+            let globalDataCache = [];
+            let isDataReady = false;
+
+            // Anonymous auth with read-only permission (Firebase rules enforce .write = false)
+            firebase.auth().signInAnonymously().then(() => {
+                const searchBtnElem = document.querySelector('.search-db-btn');
+                if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
+
+                database.ref('data').on('value', (snapshot) => {
+                    const val = snapshot.val();
+                    let flattenedData = [];
+                    if (val) {
+                        Object.values(val).forEach(tabNode => {
+                            if (typeof tabNode === 'object') {
+                                flattenedData.push(...Object.values(tabNode));
+                            }
+                        });
+                    }
+                    globalDataCache = flattenedData;
+                    isDataReady = true;
+
+                    if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
+                });
+            }).catch(err => console.error("Auth error (read-only mode):", err));
+            
             const searchBtn = document.querySelector('.search-db-btn');
             const modalOverlay = document.getElementById('resultsModal');
             const closeModal = document.getElementById('closeModal');
@@ -1561,14 +1632,6 @@
             const navButtons = document.getElementById('modalNavButtons');
             const dynamicArrowBtn = document.getElementById('dynamicArrowBtn');
 
-            const GOOGLE_APP_SCRIPT_URLS = [
-                "https://script.google.com/macros/s/AKfycbz57t_a7I5thk1BUcN1ES88HhPGosPHlW2tACdzNhHQnP5NYd0_3fjvAHLrazH_5NUV/exec",
-                "https://script.google.com/macros/s/AKfycbx-4YyzmLigI0bNSYmXN8KzazrRVLip-EeUf0R1EsJ_fBle44YXaYYiX2JCyXrMWp_0Jw/exec",
-                "https://script.google.com/macros/s/AKfycbzAFYs5bcTL5aB8uabFE99jVz7QGcLRwEvPaiXVmc-eYv2N-YfSgR4CcFgfolXxLVV_/exec"
-
-            ]; 
-
-            // Helper to toggle arrow visibility based on scrollable content
             function toggleArrowVisibility() {
                 if (!modalContentElem || !navButtons) return;
                 const isOverflowing = modalContentElem.scrollHeight > modalContentElem.clientHeight;
@@ -1579,7 +1642,6 @@
                 }
             }
 
-            // Helper to update arrow direction based on scroll position
             function updateArrowDirection() {
                 if (!modalContentElem || !dynamicArrowBtn) return;
                 const scrollTop = modalContentElem.scrollTop;
@@ -1594,7 +1656,6 @@
                 }
             }
 
-            // Scroll event listener for modal
             if (modalContentElem) {
                 modalContentElem.addEventListener('scroll', () => {
                     updateArrowDirection();
@@ -1602,8 +1663,7 @@
             }
 
             if (searchBtn && regionSelect && stationInput && categoryInput) {
-                searchBtn.addEventListener('click', async () => {
-                    // Trim values for clean search
+                searchBtn.addEventListener('click', () => {
                     const regionRaw = regionSelect.value;
                     const stationRaw = stationInput.value.trim();
                     const categoryRaw = categoryInput.value.trim();
@@ -1612,77 +1672,97 @@
                     const station = stationRaw && stationRaw !== "" ? stationRaw : null;
                     const category = categoryRaw && categoryRaw !== "" ? categoryRaw : null;
 
-                    // ENSURE at least one criteria is provided (Independent search)
                     if (!region && !station && !category) {
                         alert("Please provide at least one search criteria (Region, Item, or Category).");
                         return;
                     }
 
                     modalOverlay.classList.add('active');
-                    modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Searching data wait patiently.</p>';
-                    // Hide arrow while loading
                     if (navButtons) navButtons.classList.remove('visible');
 
-                    try {
-                        // Build dynamic URL with only the parameters that are filled (makes search independent)
-                        const fetchPromises = GOOGLE_APP_SCRIPT_URLS.map(baseUrl => {
-                            const params = new URLSearchParams();
-                            if (region) params.append('region', region);
-                            if (station) params.append('station', station);
-                            if (category) params.append('category', category);
-                            
-                            const queryString = params.toString();
-                            const fullUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
-                            
-                            return fetch(fullUrl)
-                                .then(res => res.json())
-                                .catch(err => {
-                                    console.error(`Error fetching from ${baseUrl}:`, err);
-                                    return []; 
-                                });
-                        });
-
-                        const resultsArrays = await Promise.all(fetchPromises);
-                        let combinedData = resultsArrays.flat();
-
-                        // Exact Match Filter for Date and Search terms
-                        combinedData = combinedData.filter(item => {
-                            let matchRegion = !region;
-                            let matchStation = !station;
-                            let matchCategory = !category;
-
-                            const checkExact = (term, val) => {
-                                const sVal = String(val).toLowerCase();
-                                const sTerm = term.toLowerCase();
-                                if (sVal === sTerm) return true;
-                                const escaped = sTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                return new RegExp(`(^|\\W)${escaped}($|\\W)`, 'i').test(sVal);
-                            };
-
-                            for (const val of Object.values(item)) {
-                                if (val === null || val === undefined) continue;
-                                if (!matchRegion && checkExact(region, val)) matchRegion = true;
-                                if (!matchStation && checkExact(station, val)) matchStation = true;
-                                if (!matchCategory && checkExact(category, val)) matchCategory = true;
+                    if (!isDataReady) {
+                        modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Downloading database for the first time, please wait...</p>';
+                        const checkInterval = setInterval(() => {
+                            if (isDataReady) {
+                                clearInterval(checkInterval);
+                                executeSearch();
                             }
-                            
-                            return matchRegion && matchStation && matchCategory;
-                        });
+                        }, 500);
+                        return;
+                    }
 
-                        modalBody.innerHTML = ''; 
+                    executeSearch();
+
+                    function executeSearch() {
+                        modalBody.innerHTML = '';
+                        let combinedData = globalDataCache;
 
                         if (combinedData.length === 0) {
-                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No records found for this combination.</p>';
+                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No records found in database.</p>';
+                            toggleArrowVisibility();
+                            return;
+                        }
+
+                        combinedData = combinedData.filter(item => {
+                            const searchRegion = region ? region.toLowerCase().trim() : null;
+                            const searchItem = station ? station.toLowerCase().trim() : null;
+                            const searchCategory = category ? category.toLowerCase().trim() : null;
+
+                            if (!searchRegion && !searchCategory && searchItem) {
+                                return Object.values(item).some(val => 
+                                    val !== null && val !== undefined && String(val).toLowerCase().includes(searchItem)
+                                );
+                            }
+
+                            const myOrder = item["_column_order"];
+                            if (!myOrder || myOrder.length < 3) return false;
+
+                            const offset = (myOrder[0] === "Source_Tab") ? 1 : 0;
+                            const colA_Header = myOrder[offset + 0];
+                            const colB_Header = myOrder[offset + 1];
+                            const colC_Header = myOrder[offset + 2];
+
+                            const valA = String(item[colA_Header] || "").toLowerCase().trim();
+                            const valB = String(item[colB_Header] || "").toLowerCase().trim();
+                            const valC = String(item[colC_Header] || "").toLowerCase().trim();
+
+                            const matchRegion = !searchRegion || (valA === searchRegion);
+                            const matchItem = !searchItem || (valB === searchItem);
+                            const matchCategory = !searchCategory || (valC === searchCategory);
+
+                            return matchRegion && matchItem && matchCategory;
+                        });
+
+                        if (combinedData.length === 0) {
+                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No matching records found for this combination.</p>';
                         } else {
                             combinedData.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'result-item';
                                 let content = '';
-                                for (const [key, value] of Object.entries(item)) {
-                                    if (value !== null && value !== undefined && String(value).trim() !== "") {
-                                        content += `<p><strong>${key}:</strong> ${value}</p>`;
+                                
+                                if (item["Source_Tab"]) {
+                                    content += `<span class="source-tab-label">${item["Source_Tab"]}</span>`;
+                                }
+
+                                const activeOrder = item["_column_order"];
+                                if (activeOrder && activeOrder.length > 0) {
+                                    activeOrder.forEach(headerName => {
+                                        if (headerName === "_column_order" || headerName === "Source_Tab") return;
+                                        const value = item[headerName];
+                                        if (value !== null && value !== undefined && String(value).trim() !== "") {
+                                            content += `<p><strong>${headerName}:</strong> ${value}</p>`;
+                                        }
+                                    });
+                                } else {
+                                    for (const [key, value] of Object.entries(item)) {
+                                        if (key === "_column_order" || key === "Source_Tab") continue;
+                                        if (value !== null && value !== undefined && String(value).trim() !== "") {
+                                            content += `<p><strong>${key}:</strong> ${value}</p>`;
+                                        }
                                     }
                                 }
+
                                 div.innerHTML = content;
                                 modalBody.appendChild(div);
                             });
@@ -1698,15 +1778,15 @@
                             `;
                             modalBody.appendChild(actionBtnsContainer);
 
-                            // 1. Print Logic
-                            document.getElementById('btn-print').addEventListener('click', () => {
-                                window.print();
-                            });
-
-                            // 2. Excel Logic
+                            document.getElementById('btn-print').addEventListener('click', () => { window.print(); });
                             document.getElementById('btn-excel').addEventListener('click', () => {
                                 if(typeof XLSX !== 'undefined') {
-                                    const ws = XLSX.utils.json_to_sheet(combinedData);
+                                    const exportData = combinedData.map(obj => {
+                                        const clean = {...obj};
+                                        delete clean._column_order;
+                                        return clean;
+                                    });
+                                    const ws = XLSX.utils.json_to_sheet(exportData);
                                     const wb = XLSX.utils.book_new();
                                     XLSX.utils.book_append_sheet(wb, ws, "Reben Data");
                                     XLSX.writeFile(wb, "Reben_Database_Export.xlsx");
@@ -1714,13 +1794,9 @@
                                     alert("Excel generator is loading...");
                                 }
                             });
-
-                            // 3. PDF Logic (ROBUST FIX FOR BLANK PAGES)
                             document.getElementById('btn-pdf').addEventListener('click', () => {
                                 if(typeof html2pdf !== 'undefined') {
                                     const resultsHTML = modalBody.innerHTML;
-                                    
-                                    // Create temporary invisible element for PDF capture
                                     const printWrapper = document.createElement('div');
                                     printWrapper.style.padding = '40px';
                                     printWrapper.style.background = 'white';
@@ -1738,10 +1814,8 @@
                                             © 2026 Reben Petroleum | Designed By - Mozahid
                                         </div>
                                     `;
-                                    
                                     const btnToRemove = printWrapper.querySelector('.modal-action-btns');
                                     if(btnToRemove) btnToRemove.remove();
-
                                     const opt = {
                                         margin: 10,
                                         filename: 'Reben_Report.pdf',
@@ -1749,20 +1823,28 @@
                                         html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
                                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                                     };
-
                                     html2pdf().set(opt).from(printWrapper).save();
                                 } else {
                                     alert("PDF tool is still loading...");
                                 }
                             });
-
-                            // 4. WhatsApp Share Logic
                             document.getElementById('btn-wa-share').addEventListener('click', () => {
                                 let textToShare = "Reben Database Result:\n\n";
                                 combinedData.forEach((item, index) => {
                                     textToShare += `Record ${index + 1}:\n`;
-                                    for(const [key, value] of Object.entries(item)) {
-                                        if (value) textToShare += `${key}: ${value}\n`;
+                                    if (item["Source_Tab"]) textToShare += `SOURCE: ${item["Source_Tab"]}\n`;
+                                    const activeOrder = item["_column_order"];
+                                    if (activeOrder && activeOrder.length > 0) {
+                                        activeOrder.forEach(headerName => {
+                                            if (headerName === "_column_order" || headerName === "Source_Tab") return;
+                                            const val = item[headerName];
+                                            if (val) textToShare += `${headerName}: ${val}\n`;
+                                        });
+                                    } else {
+                                        for(const [key, value] of Object.entries(item)) {
+                                            if (key === "_column_order" || key === "Source_Tab") continue;
+                                            if (value) textToShare += `${key}: ${value}\n`;
+                                        }
                                     }
                                     textToShare += "\n";
                                 });
@@ -1770,14 +1852,10 @@
                             });
                         }
 
-                        // After populating, check if modal content is scrollable
                         setTimeout(() => {
                             toggleArrowVisibility();
                             updateArrowDirection();
                         }, 50);
-                    } catch (error) {
-                        modalBody.innerHTML = '<p style="text-align:center; color: var(--primary);">Error fetching data. Check connection.</p>';
-                        toggleArrowVisibility(); // hide arrow on error
                     }
                 });
             }
@@ -1787,7 +1865,6 @@
                 if (e.target === modalOverlay) modalOverlay.classList.remove('active'); 
             });
 
-            // --- 6. Single dynamic arrow click handler ---
             if (dynamicArrowBtn && modalContentElem) {
                 dynamicArrowBtn.addEventListener('click', () => {
                     const scrollTop = modalContentElem.scrollTop;
@@ -1801,7 +1878,6 @@
                 });
             }
 
-            // Also observe modal body for dynamic changes (in case of future updates)
             if (modalBody && modalContentElem) {
                 const observer = new MutationObserver(() => {
                     toggleArrowVisibility();
