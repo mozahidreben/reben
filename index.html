@@ -1288,25 +1288,34 @@
         <div class="data-entry-top">
             <div class="input-group">
                 <label>SELECT REGION</label>
-                <select id="region-select" class="custom-select border-red">
-                    <option value="" selected>All Regions / Clear</option>
-                    <option value="Central">Central</option>
-                    <option value="East">East</option>
-                    <option value="West">West</option>
-                    <option value="North">North</option>
-                    <option value="South">South</option>
-                </select>
+                <div style="position: relative; width: 100%;">
+                    <select id="region-select" class="custom-select border-red" style="padding-right: 65px;">
+                        <option value="" selected>All Regions / Clear</option>
+                        <option value="Central">Central</option>
+                        <option value="East">East</option>
+                        <option value="West">West</option>
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                    </select>
+                    <i class="fas fa-microphone mic-btn" data-target="region-select" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.1rem; color: var(--primary); z-index: 10;" title="Voice Search Region"></i>
+                </div>
             </div>
             
             <div class="input-group">
                 <label>SELECT ITEM</label>
-                <input id="station-input" list="station-options" class="custom-select border-grey" placeholder="Type or Select Item...">
+                <div style="position: relative; width: 100%;">
+                    <input id="station-input" list="station-options" class="custom-select border-grey" placeholder="Type or Select Item..." style="padding-right: 65px;">
+                    <i class="fas fa-microphone mic-btn" data-target="station-input" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.1rem; color: var(--primary); z-index: 10;" title="Voice Search Item"></i>
+                </div>
                 <datalist id="station-options"></datalist>
             </div>
             
             <div class="input-group">
                 <label>CATEGORY</label>
-                <input id="category-input" list="category-options" class="custom-select border-grey" placeholder="Type or Select Category...">
+                <div style="position: relative; width: 100%;">
+                    <input id="category-input" list="category-options" class="custom-select border-grey" placeholder="Type or Select Category..." style="padding-right: 65px;">
+                    <i class="fas fa-microphone mic-btn" data-target="category-input" style="position: absolute; right: 35px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.1rem; color: var(--primary); z-index: 10;" title="Voice Search Category"></i>
+                </div>
                 <datalist id="category-options">
                     <option value="Maintenance">
                     <option value="Sale">
@@ -1582,42 +1591,90 @@
                 // "YOUR_THIRD_WEB_APP_URL_HERE"
             ];
 
+            // FEATURE: Local Storage Caching Keys
+            const CACHE_KEY = 'reben_db_cache';
+            const CACHE_TIME_KEY = 'reben_db_cache_time';
+            const CACHE_EXPIRY = 10 * 60 * 1000; // 10 minutes in milliseconds
+
+            // FEATURE: Retry Logic Function
+            function fetchWithRetry(url, retries = 3) {
+                return fetch(url).then(res => res.json()).catch(err => {
+                    if (retries > 0) {
+                        console.warn(`Retrying ${url}... Attempts left: ${retries - 1}`);
+                        return new Promise(resolve => setTimeout(() => resolve(fetchWithRetry(url, retries - 1)), 1000));
+                    }
+                    throw new Error(`Failed to connect after 3 attempts`);
+                });
+            }
+
             function fetchGoogleSheetData() {
                 const searchBtnElem = document.querySelector('.search-db-btn');
                 if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
 
-                // Create an array of fetch requests
-                const fetchPromises = WEB_APP_URLS.map(url => fetch(url).then(response => response.json()));
+                // FEATURE: Check Local Storage Cache First
+                const now = Date.now();
+                const cachedTime = localStorage.getItem(CACHE_TIME_KEY);
+                if (cachedTime && (now - parseInt(cachedTime)) < CACHE_EXPIRY) {
+                    const cachedData = localStorage.getItem(CACHE_KEY);
+                    if (cachedData) {
+                        try {
+                            globalDataCache = JSON.parse(cachedData);
+                            isDataReady = true;
+                            if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-check"></i> Search Database Records (Cached)';
+                            return; // Stop execution here, use cached data
+                        } catch(e) {
+                            console.error("Cache corrupted, fetching fresh data...");
+                        }
+                    }
+                }
+
+                // Create an array of fetch requests with Retry Logic
+                const fetchPromises = WEB_APP_URLS.map((url, index) => 
+                    fetchWithRetry(url, 3)
+                        .then(data => ({ status: 'fulfilled', value: data, index }))
+                        .catch(error => ({ status: 'rejected', reason: error, index }))
+                );
 
                 // Wait for all fetches to finish at the same time
                 Promise.all(fetchPromises)
                     .then(resultsArray => {
                         let combinedData = [];
-                        let hasError = false;
+                        let errorDetails = []; // FEATURE: Detailed Error Messages
 
                         // Combine the data from every URL into one big list
-                        resultsArray.forEach(data => {
-                            if (data.error) {
-                                console.error("Apps Script Error:", data.error);
-                                hasError = true;
-                            } else if (Array.isArray(data)) {
-                                combinedData = combinedData.concat(data);
+                        resultsArray.forEach(result => {
+                            if (result.status === 'rejected') {
+                                errorDetails.push(`Database ${result.index + 1} Failed: ${result.reason.message}`);
+                            } else if (result.value.error) {
+                                errorDetails.push(`Database ${result.index + 1} Apps Script Error: ${result.value.error}`);
+                            } else if (Array.isArray(result.value)) {
+                                combinedData = combinedData.concat(result.value);
                             }
                         });
 
                         // If everything failed, show an error
-                        if (hasError && combinedData.length === 0) {
-                            if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Error';
-                            return;
-                        }
+                        if (combinedData.length > 0) {
+                            // Save all the combined data so the search function can use it
+                            globalDataCache = combinedData;
+                            isDataReady = true;
+                            
+                            // FEATURE: Save to Local Storage
+                            localStorage.setItem(CACHE_KEY, JSON.stringify(combinedData));
+                            localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
 
-                        // Save all the combined data so the search function can use it
-                        globalDataCache = combinedData;
-                        isDataReady = true;
-                        if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
+                            if (errorDetails.length > 0) {
+                                if (searchBtnElem) searchBtnElem.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Partial Sync (Errors Logged)`;
+                                alert("Some databases failed to sync:\n\n" + errorDetails.join('\n'));
+                            } else {
+                                if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
+                            }
+                        } else {
+                            if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Critical Sync Error';
+                            alert("Critical Sync Error. No databases could be loaded:\n\n" + errorDetails.join('\n'));
+                        }
                     })
                     .catch(err => {
-                        console.error("Fetch error:", err);
+                        console.error("Critical Promise All Error:", err);
                         if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline / Error';
                     });
             }
@@ -1625,6 +1682,45 @@
             // Auto-fetch data on load
             fetchGoogleSheetData();
             
+            // FEATURE: Web Worker Search Setup (Keeping exact same logic, running in background)
+            const searchWorkerCode = `
+                self.onmessage = function(e) {
+                    const { data, region, station, category } = e.data;
+                    const result = data.filter(item => {
+                        const searchRegion = region ? region.toLowerCase().trim() : null;
+                        const searchItem = station ? station.toLowerCase().trim() : null;
+                        const searchCategory = category ? category.toLowerCase().trim() : null;
+
+                        if (!searchRegion && !searchCategory && searchItem) {
+                            return Object.values(item).some(val => 
+                                val !== null && val !== undefined && String(val).toLowerCase().includes(searchItem)
+                            );
+                        }
+
+                        const myOrder = item["_column_order"];
+                        if (!myOrder || myOrder.length < 3) return false;
+
+                        const offset = (myOrder[0] === "Source_Tab") ? 1 : 0;
+                        const colA_Header = myOrder[offset + 0];
+                        const colB_Header = myOrder[offset + 1];
+                        const colC_Header = myOrder[offset + 2];
+
+                        const valA = String(item[colA_Header] || "").toLowerCase().trim();
+                        const valB = String(item[colB_Header] || "").toLowerCase().trim();
+                        const valC = String(item[colC_Header] || "").toLowerCase().trim();
+
+                        const matchRegion = !searchRegion || (valA === searchRegion);
+                        const matchItem = !searchItem || (valB === searchItem);
+                        const matchCategory = !searchCategory || (valC === searchCategory);
+
+                        return matchRegion && matchItem && matchCategory;
+                    });
+                    self.postMessage(result);
+                }
+            `;
+            const workerBlob = new Blob([searchWorkerCode], { type: 'application/javascript' });
+            const searchWorker = new Worker(URL.createObjectURL(workerBlob));
+
             const searchBtn = document.querySelector('.search-db-btn');
             const modalOverlay = document.getElementById('resultsModal');
             const closeModal = document.getElementById('closeModal');
@@ -1695,55 +1791,49 @@
                     executeSearch();
 
                     function executeSearch() {
-                        modalBody.innerHTML = '';
-                        let combinedData = globalDataCache;
-
-                        if (combinedData.length === 0) {
-                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No records found in database.</p>';
-                            toggleArrowVisibility();
-                            return;
-                        }
-
-                        combinedData = combinedData.filter(item => {
-                            const searchRegion = region ? region.toLowerCase().trim() : null;
-                            const searchItem = station ? station.toLowerCase().trim() : null;
-                            const searchCategory = category ? category.toLowerCase().trim() : null;
-
-                            if (!searchRegion && !searchCategory && searchItem) {
-                                return Object.values(item).some(val => 
-                                    val !== null && val !== undefined && String(val).toLowerCase().includes(searchItem)
-                                );
-                            }
-
-                            const myOrder = item["_column_order"];
-                            if (!myOrder || myOrder.length < 3) return false;
-
-                            const offset = (myOrder[0] === "Source_Tab") ? 1 : 0;
-                            const colA_Header = myOrder[offset + 0];
-                            const colB_Header = myOrder[offset + 1];
-                            const colC_Header = myOrder[offset + 2];
-
-                            const valA = String(item[colA_Header] || "").toLowerCase().trim();
-                            const valB = String(item[colB_Header] || "").toLowerCase().trim();
-                            const valC = String(item[colC_Header] || "").toLowerCase().trim();
-
-                            const matchRegion = !searchRegion || (valA === searchRegion);
-                            const matchItem = !searchItem || (valB === searchItem);
-                            const matchCategory = !searchCategory || (valC === searchCategory);
-
-                            return matchRegion && matchItem && matchCategory;
+                        modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Filtering data via background worker...</p>';
+                        
+                        // Pass data to background worker
+                        searchWorker.postMessage({
+                            data: globalDataCache,
+                            region: region,
+                            station: station,
+                            category: category
                         });
 
-                        if (combinedData.length === 0) {
-                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No matching records found for this combination.</p>';
-                        } else {
+                        searchWorker.onmessage = function(e) {
+                            let combinedData = e.data;
+
+                            if (combinedData.length === 0) {
+                                modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No matching records found for this combination.</p>';
+                                toggleArrowVisibility();
+                                return;
+                            }
+
+                            modalBody.innerHTML = ''; // Clear loader
+
+                            // FEATURE: Highlight Search Terms Logic
+                            const searchTerms = [region, station, category].filter(Boolean);
+                            function highlightText(text) {
+                                if (text === null || text === undefined) return text;
+                                let highlighted = String(text);
+                                searchTerms.forEach(term => {
+                                    if (term && term.trim() !== "") {
+                                        // Safe regex injection escaping
+                                        const regex = new RegExp("(" + term.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&') + ")", "gi");
+                                        highlighted = highlighted.replace(regex, '<mark style="background-color: #ffeb3b; color: #000; padding: 0 2px; border-radius: 4px;">$1</mark>');
+                                    }
+                                });
+                                return highlighted;
+                            }
+
                             combinedData.forEach(item => {
                                 const div = document.createElement('div');
                                 div.className = 'result-item';
                                 let content = '';
                                 
                                 if (item["Source_Tab"]) {
-                                    content += `<span class="source-tab-label">${item["Source_Tab"]}</span>`;
+                                    content += `<span class="source-tab-label">${highlightText(item["Source_Tab"])}</span>`;
                                 }
 
                                 const activeOrder = item["_column_order"];
@@ -1752,14 +1842,14 @@
                                         if (headerName === "_column_order" || headerName === "Source_Tab") return;
                                         const value = item[headerName];
                                         if (value !== null && value !== undefined && String(value).trim() !== "") {
-                                            content += `<p><strong>${headerName}:</strong> ${value}</p>`;
+                                            content += `<p><strong>${headerName}:</strong> ${highlightText(value)}</p>`;
                                         }
                                     });
                                 } else {
                                     for (const [key, value] of Object.entries(item)) {
                                         if (key === "_column_order" || key === "Source_Tab") continue;
                                         if (value !== null && value !== undefined && String(value).trim() !== "") {
-                                            content += `<p><strong>${key}:</strong> ${value}</p>`;
+                                            content += `<p><strong>${key}:</strong> ${highlightText(value)}</p>`;
                                         }
                                     }
                                 }
@@ -1851,12 +1941,12 @@
                                 });
                                 window.open(`https://wa.me/?text=${encodeURIComponent(textToShare)}`, '_blank');
                             });
-                        }
 
-                        setTimeout(() => {
-                            toggleArrowVisibility();
-                            updateArrowDirection();
-                        }, 50);
+                            setTimeout(() => {
+                                toggleArrowVisibility();
+                                updateArrowDirection();
+                            }, 50);
+                        }
                     }
                 });
             }
@@ -1885,6 +1975,65 @@
                     updateArrowDirection();
                 });
                 observer.observe(modalBody, { childList: true, subtree: true, characterData: true });
+            }
+
+            // --- FEATURE: Voice Search Initialization ---
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                document.querySelectorAll('.mic-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const targetId = this.getAttribute('data-target');
+                        const targetInput = document.getElementById(targetId);
+                        const recognition = new SpeechRecognition();
+                        recognition.lang = 'en-US'; // Uses system default or US English
+                        
+                        // Visual feedback
+                        const originalColor = this.style.color;
+                        this.style.color = '#25d366'; // Green while listening
+                        this.classList.add('fa-beat-fade');
+
+                        recognition.onresult = function(event) {
+                            const transcript = event.results[0][0].transcript.trim();
+                            
+                            // If it's a select element (Region), try to find matching option
+                            if (targetInput.tagName === 'SELECT') {
+                                let found = false;
+                                for (let i = 0; i < targetInput.options.length; i++) {
+                                    if (targetInput.options[i].text.toLowerCase().includes(transcript.toLowerCase())) {
+                                        targetInput.selectedIndex = i;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    alert('Voice matched "' + transcript + '" but could not find a matching region in the list.');
+                                }
+                            } else {
+                                // Direct input for Item and Category
+                                targetInput.value = transcript;
+                            }
+                            
+                            // Trigger change event to update any connected logic
+                            targetInput.dispatchEvent(new Event('change'));
+                        };
+
+                        recognition.onerror = function(event) {
+                            console.error('Speech error:', event.error);
+                            alert('Voice search error: ' + event.error);
+                        };
+
+                        recognition.onend = () => {
+                            this.style.color = originalColor;
+                            this.classList.remove('fa-beat-fade');
+                        };
+
+                        recognition.start();
+                    });
+                });
+            } else {
+                // Hide mic buttons if browser does not support Voice Search (e.g. Firefox)
+                document.querySelectorAll('.mic-btn').forEach(btn => btn.style.display = 'none');
             }
         });
     </script>
