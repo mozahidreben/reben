@@ -10,10 +10,6 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     
     <style>
         /* =========================================
@@ -1410,16 +1406,9 @@
     <script>
         /* =========================================
            SECURITY NOTICE:
-           - Firebase API key is a public identifier and is safe to include.
-           - For maximum data safety, we enforce READ-ONLY Firebase Rules.
-           - Recommended Realtime Database Rules (apply in Firebase Console):
-             {
-               "rules": {
-                 ".read": "auth != null",
-                 ".write": false
-               }
-             }
-           - Anonymous authentication ensures only read access; write operations are fully blocked.
+           - Fetching data securely from Google Apps Script Web App.
+           - Ensure your Apps Script deployment is set to "Execute as: Me"
+             and "Who has access: Anyone".
            - No sensitive data is ever written from this client.
         ========================================= */
 
@@ -1581,48 +1570,60 @@
                 });
             }
 
-            // --- 5. FIREBASE DATABASE SEARCH & ORDER RENDERING (READ-ONLY MODE) ---
+            // --- 5. GOOGLE SHEETS DATABASE SEARCH & ORDER RENDERING ---
             
-            const firebaseConfig = {
-                apiKey: "AIzaSyD7vGoD5Q37rTJ6MySFQ8lhqJCfPFbyR8A",   // Public identifier (safe)
-                authDomain: "reben-4477f.firebaseapp.com",
-                databaseURL: "https://reben-4477f-default-rtdb.firebaseio.com",
-                projectId: "reben-4477f",
-                storageBucket: "reben-4477f.firebasestorage.app",
-                messagingSenderId: "581738457329",
-                appId: "1:581738457329:web:c3ed41b390f9be642fa150",
-                measurementId: "G-YDGYZMSYWM"
-            };
-            
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            const database = firebase.database();
-
             let globalDataCache = [];
             let isDataReady = false;
 
-            // Anonymous auth with read-only permission (Firebase rules enforce .write = false)
-            firebase.auth().signInAnonymously().then(() => {
+            // PASTE ALL YOUR APP SCRIPT WEB APP URLS HERE
+            const WEB_APP_URLS = [
+                "https://script.google.com/macros/s/AKfycbzYfDA37mAH6baNnFaHvzzSap3xpxMmAA9fLn1fTV9qIVTdcllng4WrEvL1ybXQw8RKmw/exec",
+                "https://script.google.com/macros/s/AKfycbzPwWK4IcFhoDvOdWKlFWkpjCRGC7AEmVxwCzFbq8XF7ilbom1rVLzz_gfcjVyUXPuG/exec", // Add more URLs here, separated by commas
+                // "YOUR_THIRD_WEB_APP_URL_HERE"
+            ];
+
+            function fetchGoogleSheetData() {
                 const searchBtnElem = document.querySelector('.search-db-btn');
                 if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
 
-                database.ref('data').on('value', (snapshot) => {
-                    const val = snapshot.val();
-                    let flattenedData = [];
-                    if (val) {
-                        Object.values(val).forEach(tabNode => {
-                            if (typeof tabNode === 'object') {
-                                flattenedData.push(...Object.values(tabNode));
+                // Create an array of fetch requests
+                const fetchPromises = WEB_APP_URLS.map(url => fetch(url).then(response => response.json()));
+
+                // Wait for all fetches to finish at the same time
+                Promise.all(fetchPromises)
+                    .then(resultsArray => {
+                        let combinedData = [];
+                        let hasError = false;
+
+                        // Combine the data from every URL into one big list
+                        resultsArray.forEach(data => {
+                            if (data.error) {
+                                console.error("Apps Script Error:", data.error);
+                                hasError = true;
+                            } else if (Array.isArray(data)) {
+                                combinedData = combinedData.concat(data);
                             }
                         });
-                    }
-                    globalDataCache = flattenedData;
-                    isDataReady = true;
 
-                    if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
-                });
-            }).catch(err => console.error("Auth error (read-only mode):", err));
+                        // If everything failed, show an error
+                        if (hasError && combinedData.length === 0) {
+                            if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Error';
+                            return;
+                        }
+
+                        // Save all the combined data so the search function can use it
+                        globalDataCache = combinedData;
+                        isDataReady = true;
+                        if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
+                    })
+                    .catch(err => {
+                        console.error("Fetch error:", err);
+                        if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline / Error';
+                    });
+            }
+
+            // Auto-fetch data on load
+            fetchGoogleSheetData();
             
             const searchBtn = document.querySelector('.search-db-btn');
             const modalOverlay = document.getElementById('resultsModal');
