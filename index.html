@@ -387,6 +387,7 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
+            position: relative;
         }
 
         .input-group label {
@@ -395,6 +396,41 @@
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+        }
+
+        /* Voice search icon */
+        .voice-icon {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            background: #fff5f6;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary);
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255,15,57,0.2);
+            z-index: 2;
+        }
+        .voice-icon:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+        .voice-icon.listening {
+            background: #25d366;
+            color: white;
+            animation: pulseMic 1s infinite;
+        }
+        @keyframes pulseMic {
+            0% { box-shadow: 0 0 0 0 rgba(37,211,102,0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(37,211,102,0); }
+            100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
         }
 
         .custom-select, .custom-btn {
@@ -475,6 +511,27 @@
             color: white;
             transform: translateY(-2px);
             box-shadow: 0 8px 15px rgba(255,15,57,0.2);
+        }
+
+        /* Toast for error messages */
+        .info-toast {
+            position: fixed;
+            bottom: 100px;
+            left: 20px;
+            background: #1e293b;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            z-index: 1100;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .info-toast.show {
+            opacity: 1;
         }
 
         /* =========================================
@@ -968,6 +1025,13 @@
         }
         .result-item p { margin-bottom: 5px; font-size: 0.95rem; }
         .result-item strong { color: var(--text-main); }
+        /* Highlighted search term */
+        .result-item mark {
+            background: #ffeb3b;
+            color: #1e293b;
+            padding: 0 2px;
+            border-radius: 4px;
+        }
         .loader {
             border: 4px solid #f3f3f3; border-top: 4px solid var(--primary);
             border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;
@@ -1296,12 +1360,14 @@
                     <option value="North">North</option>
                     <option value="South">South</option>
                 </select>
+                <i class="fas fa-microphone voice-icon" id="voiceRegionBtn" data-target="region"></i>
             </div>
             
             <div class="input-group">
                 <label>SELECT ITEM</label>
                 <input id="station-input" list="station-options" class="custom-select border-grey" placeholder="Type or Select Item...">
                 <datalist id="station-options"></datalist>
+                <i class="fas fa-microphone voice-icon" id="voiceStationBtn" data-target="station"></i>
             </div>
             
             <div class="input-group">
@@ -1315,6 +1381,7 @@
                     <option value="Count"></option>
                     <option value="Category 3">
                 </datalist>
+                <i class="fas fa-microphone voice-icon" id="voiceCategoryBtn" data-target="category"></i>
             </div>
             
             <div class="input-group">
@@ -1403,166 +1470,492 @@
         <p style="font-size: 0.8rem; margin-top: 5px;">Designed by Mozahid</p>
     </footer>
 
+    <div class="info-toast" id="infoToast"></div>
+
     <script>
         /* =========================================
-           SECURITY NOTICE:
-           - Fetching data securely from Google Apps Script Web App.
-           - Ensure your Apps Script deployment is set to "Execute as: Me"
-             and "Who has access: Anyone".
-           - No sensitive data is ever written from this client.
+           ENHANCED SECURE PORTAL WITH:
+           - Local Storage Caching (15 min)
+           - Web Workers for searching
+           - Highlight search terms
+           - Retry logic (3 attempts)
+           - Detailed error messages
+           - Voice search for region/station/category
         ========================================= */
 
-        document.addEventListener("DOMContentLoaded", () => {
-            
-            // --- 1. Audio & Vibration Logic ---
-            const backgroundMusic = document.getElementById('backgroundMusic');
-            let musicStarted = false;
+        (function() {
+            // ---------- CONFIGURATION ----------
+            const WEB_APP_URLS = [
+                "https://script.google.com/macros/s/AKfycbzYfDA37mAH6baNnFaHvzzSap3xpxMmAA9fLn1fTV9qIVTdcllng4WrEvL1ybXQw8RKmw/exec",
+                "https://script.google.com/macros/s/AKfycbzPwWK4IcFhoDvOdWKlFWkpjCRGC7AEmVxwCzFbq8XF7ilbom1rVLzz_gfcjVyUXPuG/exec"
+            ];
+            const CACHE_KEY = 'reben_cached_data';
+            const CACHE_TIME_KEY = 'reben_cache_time';
+            const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
-            function playMedia() {
-                if ("vibrate" in navigator) navigator.vibrate(50);
-                if (!musicStarted && backgroundMusic) {
-                    backgroundMusic.volume = 0.3;
-                    backgroundMusic.play().then(() => { musicStarted = true; }).catch(() => {});
+            let globalDataCache = [];
+            let isDataReady = false;
+            let activeWorker = null;
+
+            // Helper: show toast message
+            function showToast(msg, isError = false) {
+                const toast = document.getElementById('infoToast');
+                if (!toast) return;
+                toast.innerText = msg;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 4000);
+            }
+
+            // Retry logic: fetch with exponential backoff
+            async function fetchWithRetry(url, retries = 3, delay = 800) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        const data = await response.json();
+                        return data;
+                    } catch (err) {
+                        if (i === retries - 1) throw err;
+                        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)));
+                    }
                 }
             }
 
-            document.querySelectorAll('.vibrate-and-play-link').forEach(el => {
-                el.addEventListener('click', playMedia);
-            });
-            document.body.addEventListener('click', playMedia, { once: true });
+            // Fetch all sheets, update cache, show detailed errors
+            async function fetchAllSheetsWithCache() {
+                const searchBtn = document.querySelector('.search-db-btn');
+                if (searchBtn) searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
 
+                // Try to load from cache first
+                const cached = localStorage.getItem(CACHE_KEY);
+                const cacheTime = localStorage.getItem(CACHE_TIME_KEY);
+                const now = Date.now();
+                if (cached && cacheTime && (now - parseInt(cacheTime)) < CACHE_TTL) {
+                    try {
+                        globalDataCache = JSON.parse(cached);
+                        isDataReady = true;
+                        showToast('Loaded from cache. Refreshing in background...');
+                    } catch(e) { console.warn("Cache parse error", e); }
+                }
 
-            // --- 2. Reliable Synchronous Scrolling Logic (Mobile) ---
-            const rows = document.querySelectorAll('.grid-row');
-            let isSyncing = false;
-            let syncTimeout;
+                // Background fetch with retry and detailed error reporting
+                let combinedData = [];
+                let errors = [];
+                for (const url of WEB_APP_URLS) {
+                    try {
+                        const data = await fetchWithRetry(url, 3, 800);
+                        if (Array.isArray(data)) {
+                            combinedData.push(...data);
+                        } else if (data && data.error) {
+                            errors.push(`${url} → ${data.error}`);
+                        } else {
+                            errors.push(`${url} → Invalid response format`);
+                        }
+                    } catch (err) {
+                        errors.push(`${url} → ${err.message}`);
+                    }
+                }
 
-            if (rows.length > 0) {
-                rows.forEach(row => {
-                    row.addEventListener('scroll', function() {
-                        if (window.innerWidth >= 769) return;
-                        if (isSyncing) return;
+                if (combinedData.length === 0) {
+                    if (errors.length) {
+                        showToast(`Sync error: ${errors[0]}`, true);
+                        if (searchBtn) searchBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Error';
+                    } else {
+                        showToast('No data received from any source', true);
+                        if (searchBtn) searchBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> No Data';
+                    }
+                    return;
+                }
 
-                        isSyncing = true;
-                        const currentScrollLeft = this.scrollLeft;
+                // Success
+                globalDataCache = combinedData;
+                isDataReady = true;
+                localStorage.setItem(CACHE_KEY, JSON.stringify(combinedData));
+                localStorage.setItem(CACHE_TIME_KEY, Date.now().toString());
+                showToast(`Database updated: ${combinedData.length} records`);
+                if (searchBtn) searchBtn.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
+            }
 
-                        rows.forEach(otherRow => {
-                            if (otherRow !== this) {
-                                otherRow.scrollLeft = currentScrollLeft;
+            // ---------- WEB WORKER FOR SEARCHING (preserves original search logic) ----------
+            const workerBlob = new Blob([`
+                self.onmessage = function(e) {
+                    const { data, region, station, category } = e.data;
+                    let filtered = data.filter(item => {
+                        const searchRegion = region ? region.toLowerCase().trim() : null;
+                        const searchItem = station ? station.toLowerCase().trim() : null;
+                        const searchCategory = category ? category.toLowerCase().trim() : null;
+
+                        if (!searchRegion && !searchCategory && searchItem) {
+                            return Object.values(item).some(val => 
+                                val !== null && val !== undefined && String(val).toLowerCase().includes(searchItem)
+                            );
+                        }
+
+                        const myOrder = item["_column_order"];
+                        if (!myOrder || myOrder.length < 3) return false;
+
+                        const offset = (myOrder[0] === "Source_Tab") ? 1 : 0;
+                        const colA_Header = myOrder[offset + 0];
+                        const colB_Header = myOrder[offset + 1];
+                        const colC_Header = myOrder[offset + 2];
+
+                        const valA = String(item[colA_Header] || "").toLowerCase().trim();
+                        const valB = String(item[colB_Header] || "").toLowerCase().trim();
+                        const valC = String(item[colC_Header] || "").toLowerCase().trim();
+
+                        const matchRegion = !searchRegion || (valA === searchRegion);
+                        const matchItem = !searchItem || (valB === searchItem);
+                        const matchCategory = !searchCategory || (valC === searchCategory);
+
+                        return matchRegion && matchItem && matchCategory;
+                    });
+                    self.postMessage({ filtered });
+                };
+            `], { type: 'application/javascript' });
+            const workerUrl = URL.createObjectURL(workerBlob);
+
+            // Highlight search terms in a string
+            function highlightText(text, terms = []) {
+                if (!text || terms.length === 0) return text;
+                let result = String(text);
+                terms.forEach(term => {
+                    if (!term) return;
+                    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escaped})`, 'gi');
+                    result = result.replace(regex, `<mark>$1</mark>`);
+                });
+                return result;
+            }
+
+            // Render results with highlighting
+            function renderResults(filteredData, searchTerms = { region: '', station: '', category: '' }) {
+                const modalBody = document.getElementById('modalBody');
+                if (!modalBody) return;
+                modalBody.innerHTML = '';
+                if (!filteredData.length) {
+                    modalBody.innerHTML = '<p style="text-align:center; color:#64748b;">No matching records found.</p>';
+                    return;
+                }
+
+                const termsArr = [searchTerms.region, searchTerms.station, searchTerms.category].filter(t => t && t.trim() !== '');
+
+                filteredData.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    let content = '';
+                    if (item.Source_Tab) {
+                        content += `<span class="source-tab-label">${item.Source_Tab}</span>`;
+                    }
+                    const activeOrder = item._column_order;
+                    if (activeOrder && activeOrder.length) {
+                        activeOrder.forEach(header => {
+                            if (header === '_column_order' || header === 'Source_Tab') return;
+                            let value = item[header];
+                            if (value !== undefined && value !== null && String(value).trim() !== '') {
+                                const displayValue = highlightText(String(value), termsArr);
+                                content += `<p><strong>${header}:</strong> ${displayValue}</p>`;
                             }
                         });
+                    } else {
+                        for (const [key, val] of Object.entries(item)) {
+                            if (key === '_column_order' || key === 'Source_Tab') continue;
+                            if (val) {
+                                const displayVal = highlightText(String(val), termsArr);
+                                content += `<p><strong>${key}:</strong> ${displayVal}</p>`;
+                            }
+                        }
+                    }
+                    div.innerHTML = content;
+                    modalBody.appendChild(div);
+                });
 
-                        clearTimeout(syncTimeout);
-                        syncTimeout = setTimeout(() => {
-                            isSyncing = false;
-                        }, 20); 
-                    }, { passive: true });
+                // Action buttons (export, print, etc.)
+                const actionDiv = document.createElement('div');
+                actionDiv.className = 'modal-action-btns';
+                actionDiv.innerHTML = `
+                    <button id="btn-print" title="Print Data" class="action-icon-btn"><i class="fas fa-print"></i></button>
+                    <span style="display: flex; align-items: center; font-weight: 600; font-size: 1rem; color: var(--text-main); margin-right: auto; margin-left: 5px;">Total: ${filteredData.length}</span>
+                    <button id="btn-excel" title="Download Excel" class="action-icon-btn"><i class="fas fa-file-excel"></i></button>
+                    <button id="btn-pdf" title="Download PDF" class="action-icon-btn"><i class="fas fa-file-pdf"></i></button>
+                    <button id="btn-wa-share" title="Share on WhatsApp" class="action-icon-btn wa-btn"><i class="fab fa-whatsapp"></i></button>
+                `;
+                modalBody.appendChild(actionDiv);
+
+                // Attach event listeners
+                document.getElementById('btn-print')?.addEventListener('click', () => window.print());
+                document.getElementById('btn-excel')?.addEventListener('click', () => {
+                    if (typeof XLSX !== 'undefined') {
+                        const exportData = filteredData.map(obj => {
+                            const clean = { ...obj };
+                            delete clean._column_order;
+                            return clean;
+                        });
+                        const ws = XLSX.utils.json_to_sheet(exportData);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, "Reben Data");
+                        XLSX.writeFile(wb, "Reben_Database_Export.xlsx");
+                    } else {
+                        alert("Excel library still loading...");
+                    }
+                });
+                document.getElementById('btn-pdf')?.addEventListener('click', () => {
+                    if (typeof html2pdf !== 'undefined') {
+                        const printWrapper = document.createElement('div');
+                        printWrapper.style.padding = '40px';
+                        printWrapper.style.background = 'white';
+                        printWrapper.style.width = '750px';
+                        printWrapper.innerHTML = `
+                            <div style="text-align:center; border-bottom: 2px solid #ff0f39; padding-bottom: 20px; margin-bottom: 30px;">
+                                <h1 style="color:#ff0f39; margin:0; font-size: 28px;">REBEN COMPANY</h1>
+                                <h2 style="color:#1e293b; margin: 10px 0 0 0; font-size: 20px;">Database Search Report</h2>
+                                <p style="color:#64748b; margin: 5px 0 0 0;">Date: ${new Date().toLocaleString()}</p>
+                            </div>
+                            <div style="font-family: 'Outfit', sans-serif;">
+                                ${modalBody.innerHTML}
+                            </div>
+                            <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 11px;">
+                                © 2026 Reben Petroleum | Designed By - Mozahid
+                            </div>
+                        `;
+                        const btns = printWrapper.querySelector('.modal-action-btns');
+                        if (btns) btns.remove();
+                        html2pdf().set({ margin: 10, filename: 'Reben_Report.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(printWrapper).save();
+                    } else {
+                        alert("PDF library still loading...");
+                    }
+                });
+                document.getElementById('btn-wa-share')?.addEventListener('click', () => {
+                    let textToShare = "Reben Database Result:\n\n";
+                    filteredData.forEach((item, idx) => {
+                        textToShare += `Record ${idx + 1}:\n`;
+                        if (item.Source_Tab) textToShare += `SOURCE: ${item.Source_Tab}\n`;
+                        const activeOrder = item._column_order;
+                        if (activeOrder && activeOrder.length) {
+                            activeOrder.forEach(header => {
+                                if (header === '_column_order' || header === 'Source_Tab') return;
+                                const val = item[header];
+                                if (val) textToShare += `${header}: ${val}\n`;
+                            });
+                        } else {
+                            for (const [key, val] of Object.entries(item)) {
+                                if (key === '_column_order' || key === 'Source_Tab') continue;
+                                if (val) textToShare += `${key}: ${val}\n`;
+                            }
+                        }
+                        textToShare += "\n";
+                    });
+                    window.open(`https://wa.me/?text=${encodeURIComponent(textToShare)}`, '_blank');
                 });
             }
 
+            // Trigger search with worker
+            function performSearch(region, station, category) {
+                const modal = document.getElementById('resultsModal');
+                const modalBody = document.getElementById('modalBody');
+                if (!modal || !modalBody) return;
+                modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Searching using high-performance worker...</p>';
+                modal.classList.add('active');
 
-            // --- 3. Slider Logic ---
+                if (!isDataReady) {
+                    modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Loading database, please wait...</p>';
+                    const interval = setInterval(() => {
+                        if (isDataReady) {
+                            clearInterval(interval);
+                            executeWorkerSearch(region, station, category);
+                        }
+                    }, 500);
+                    return;
+                }
+                executeWorkerSearch(region, station, category);
+            }
+
+            function executeWorkerSearch(region, station, category) {
+                if (activeWorker) activeWorker.terminate();
+                activeWorker = new Worker(workerUrl);
+                activeWorker.onmessage = (e) => {
+                    renderResults(e.data.filtered, { region, station, category });
+                    // Adjust navigation arrow visibility
+                    const modalContent = document.querySelector('#resultsModal .modal-content');
+                    const navDiv = document.getElementById('modalNavButtons');
+                    const updateNav = () => {
+                        if (modalContent && navDiv) {
+                            if (modalContent.scrollHeight > modalContent.clientHeight) navDiv.classList.add('visible');
+                            else navDiv.classList.remove('visible');
+                        }
+                    };
+                    setTimeout(updateNav, 50);
+                    if (modalContent) {
+                        modalContent.addEventListener('scroll', () => {
+                            const arrow = document.getElementById('dynamicArrowBtn');
+                            if (arrow) {
+                                if (modalContent.scrollTop + modalContent.clientHeight >= modalContent.scrollHeight - 5)
+                                    arrow.innerHTML = '<i class="fas fa-arrow-up"></i>';
+                                else
+                                    arrow.innerHTML = '<i class="fas fa-arrow-down"></i>';
+                            }
+                        });
+                    }
+                    activeWorker.terminate();
+                    activeWorker = null;
+                };
+                activeWorker.onerror = (err) => {
+                    modalBody.innerHTML = '<p style="color:red;">Worker error, please retry.</p>';
+                    console.error(err);
+                    activeWorker = null;
+                };
+                activeWorker.postMessage({ data: globalDataCache, region, station, category });
+            }
+
+            // ---------- VOICE SEARCH ----------
+            function initVoice(targetField) {
+                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                    showToast("Voice recognition not supported in this browser", true);
+                    return;
+                }
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                const recognition = new SpeechRecognition();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.start();
+
+                const micIcon = document.querySelector(`.voice-icon[data-target="${targetField}"]`);
+                if (micIcon) micIcon.classList.add('listening');
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript.trim();
+                    if (targetField === 'region') {
+                        const regionSelect = document.getElementById('region-select');
+                        let matched = null;
+                        for (let opt of regionSelect.options) {
+                            if (opt.value && transcript.toLowerCase().includes(opt.value.toLowerCase())) {
+                                matched = opt.value;
+                                break;
+                            }
+                        }
+                        if (matched) regionSelect.value = matched;
+                        else showToast(`Region "${transcript}" not recognized`, true);
+                    } else if (targetField === 'station') {
+                        document.getElementById('station-input').value = transcript;
+                    } else if (targetField === 'category') {
+                        document.getElementById('category-input').value = transcript;
+                    }
+                    if (micIcon) micIcon.classList.remove('listening');
+                };
+                recognition.onerror = () => {
+                    if (micIcon) micIcon.classList.remove('listening');
+                    showToast("Voice recognition failed", true);
+                };
+                recognition.onend = () => {
+                    if (micIcon) micIcon.classList.remove('listening');
+                };
+            }
+
+            // ---------- ATTACH EVENT LISTENERS ----------
+            document.getElementById('voiceRegionBtn')?.addEventListener('click', () => initVoice('region'));
+            document.getElementById('voiceStationBtn')?.addEventListener('click', () => initVoice('station'));
+            document.getElementById('voiceCategoryBtn')?.addEventListener('click', () => initVoice('category'));
+
+            const searchButton = document.querySelector('.search-db-btn');
+            if (searchButton) {
+                searchButton.addEventListener('click', () => {
+                    const region = document.getElementById('region-select').value;
+                    const station = document.getElementById('station-input').value.trim();
+                    const category = document.getElementById('category-input').value.trim();
+                    if (!region && !station && !category) {
+                        alert("Please provide at least one search criteria (Region, Item, or Category).");
+                        return;
+                    }
+                    performSearch(region, station, category);
+                });
+            }
+
+            // Modal close logic
+            const modalOverlay = document.getElementById('resultsModal');
+            const closeModalBtn = document.getElementById('closeModal');
+            if (closeModalBtn) closeModalBtn.addEventListener('click', () => modalOverlay.classList.remove('active'));
+            if (modalOverlay) modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) modalOverlay.classList.remove('active'); });
+
+            // Dynamic arrow button scroll
+            const dynamicArrow = document.getElementById('dynamicArrowBtn');
+            if (dynamicArrow) {
+                dynamicArrow.addEventListener('click', () => {
+                    const modalContent = document.querySelector('#resultsModal .modal-content');
+                    if (modalContent) {
+                        const isBottom = modalContent.scrollTop + modalContent.clientHeight >= modalContent.scrollHeight - 5;
+                        modalContent.scrollTo({ top: isBottom ? 0 : modalContent.scrollHeight, behavior: 'smooth' });
+                    }
+                });
+            }
+
+            // ---------- PRESERVE ALL EXISTING FUNCTIONALITY (slider, ticker, sync scroll, region-station mapping) ----------
+            // Slider
             const slides = document.querySelectorAll(".slide");
             const dots = document.querySelectorAll(".dot");
-            let index = 0;
+            let idx = 0;
             let slideInterval;
-
             function showSlide(i) {
-                if (slides.length === 0) return;
-                i = i % slides.length;
-                if (i < 0) i = slides.length - 1;
-
+                i = (i + slides.length) % slides.length;
                 slides.forEach(s => s.classList.remove("active"));
                 dots.forEach(d => d.classList.remove("active"));
                 slides[i].classList.add("active");
-                dots[i].classList.add("active");
-                index = i;
+                if (dots[i]) dots[i].classList.add("active");
+                idx = i;
+            }
+            function nextSlide() { showSlide(idx + 1); }
+            if (slides.length) {
+                showSlide(0);
+                slideInterval = setInterval(nextSlide, 5000);
+                dots.forEach((dot, i) => {
+                    dot.addEventListener("click", () => {
+                        clearInterval(slideInterval);
+                        showSlide(i);
+                        slideInterval = setInterval(nextSlide, 5000);
+                    });
+                });
             }
 
-            function nextSlide() {
-                showSlide(index + 1);
-            }
-
-            function startAuto() { slideInterval = setInterval(nextSlide, 5000); }
-            function stopAuto() { clearInterval(slideInterval); }
-
-            dots.forEach(dot => {
-                dot.addEventListener("click", () => {
-                    showSlide(parseInt(dot.dataset.index));
-                    stopAuto();
-                    startAuto();
+            // Synchronous horizontal scroll for grid rows
+            const rows = document.querySelectorAll('.grid-row');
+            let syncing = false;
+            rows.forEach(row => {
+                row.addEventListener('scroll', function() {
+                    if (window.innerWidth >= 769) return;
+                    if (syncing) return;
+                    syncing = true;
+                    const left = this.scrollLeft;
+                    rows.forEach(other => { if (other !== this) other.scrollLeft = left; });
+                    setTimeout(() => { syncing = false; }, 20);
                 });
             });
 
-            if (slides.length > 0) {
-                showSlide(0);
-                startAuto();
-            }
-
-            // --- 4. Region to Dynamic Station Selection Logic (UPDATED STATION LISTS) ---
+            // Region to station mapping
             const regionStations = {
-                "Central": [
-                    "Truck", "Hurmila", "1-Mar-2026", "Tharmada", "ALL", "Hota 01", "Dariya", "Dawadmi Nora", "Bisha",
-                    "AL Kharaj", "AL Dar Baidah", "Aziziyah", "Bilal", "Badar", "Hota 02", "Khouf",
-                    "Damam Road", "Shediyah", "AL Reen", "Muhamadiya SHQ Rd", "Hanish", "Sagir 01",
-                    "Dharat laban", "Dilam", "Auj Shola", "AL Rass", "Dhurmah", "AL Ruweda",
-                    "Dawasir 02", "Dawasir 01", "Shawaiyah", "Khashra", "Tayri"
-                ],
-                "East": [
-                    "AL - Hasa 04", "AL - Hasa 05", "AL - Hasa 09", "Hafar AL Batin", "AL - Hasa 08",
-                    "AL - Hasa 10", "AL - Hasa 03", "AL - Hasa 07", "HASA 11 DHRN FSL", "Qaisumah"
-                ],
-                "West": [
-                    "REDWAN", "Yary", "Jeddah Rahmaniya", "Taif", "Ardiyah"
-                ],
-                "North": [
-                    "Rafha", "Domat", "AL Jouf", "Auqlia 01", "Auqlia 02", "Auqlia 03", "Arar"
-                ],
-                "South": [
-                    "Dharan AL Junub 2", "Thagar", "Nimra", "Shorora 02", "Najran 04", "Najran 03",
-                    "Najran 01", "Najran 02", "Najran 05", "Najran 06", "Najran 07", "Najran 08",
-                    "Naj-Sharf Markab", "Jizan Daheka",
-                    "ASHOK", "MUTAKIRU", "ABDULAI", "SALMAN", "KAMLESH", "AFROJ", "RASHID AMIDU",
-                    "PHEKAN YADAV", "PRADIP RAMTEL", "AITARAM TAMANG", "ATIF", "KRISHNA TAMANG",
-                    "MOHIN IRFAN", "ARUN THARU", "ABDUL MUTLIB", "SANJAY THARU", "FARMAN ALI",
-                    "SUHAIL KHAN", "MUSHAHID MALVA", "VIM NARAYAN", "SURINDRA MAHTO", "CHANDRA BAHADUR",
-                    "SADDAM", "BUDDA", "MOHAMMAD WASIM", "TIJANI MUSAH", "JIBRIL", "SUBHASH",
-                    "ABDULAI A RAHMAN", "FAISAL", "ISSAKA ABUBAKARI", "SAGAR RAM", "MAYAKYE",
-                    "GANESH LAMA", "SELMAN TAMANG", "FAROOQ", "MD. ALAM", "WASIM", "FAIZAN", "GULFAM",
-                    "IRFAN YAMEEN", "JISHAN IQBAL", "JISHAN MUSTAFA", "JUBAIR", "MAJID", "NAJIM",
-                    "SHAHE AALAM", "WASIM YUSUF", "HARIS", "JITENDRA", "MOHSIN", "NADEEM", "VAKEEL",
-                    "ALAY", "FURKAN", "NAUSHAD", "SHAHID", "WAJID", "ATIK", "JAMEEL", "ASIF", "SACHIN",
-                    "BABA ABUBAKARI"
-                ]
+                "Central": ["Truck","Hurmila","1-Mar-2026","Tharmada","ALL","Hota 01","Dariya","Dawadmi Nora","Bisha","AL Kharaj","AL Dar Baidah","Aziziyah","Bilal","Badar","Hota 02","Khouf","Damam Road","Shediyah","AL Reen","Muhamadiya SHQ Rd","Hanish","Sagir 01","Dharat laban","Dilam","Auj Shola","AL Rass","Dhurmah","AL Ruweda","Dawasir 02","Dawasir 01","Shawaiyah","Khashra","Tayri"],
+                "East": ["AL - Hasa 04","AL - Hasa 05","AL - Hasa 09","Hafar AL Batin","AL - Hasa 08","AL - Hasa 10","AL - Hasa 03","AL - Hasa 07","HASA 11 DHRN FSL","Qaisumah"],
+                "West": ["REDWAN","Yary","Jeddah Rahmaniya","Taif","Ardiyah"],
+                "North": ["Rafha","Domat","AL Jouf","Auqlia 01","Auqlia 02","Auqlia 03","Arar"],
+                "South": ["Dharan AL Junub 2","Thagar","Nimra","Shorora 02","Najran 04","Najran 03","Najran 01","Najran 02","Najran 05","Najran 06","Najran 07","Najran 08","Naj-Sharf Markab","Jizan Daheka","ASHOK","MUTAKIRU","ABDULAI","SALMAN","KAMLESH","AFROJ","RASHID AMIDU","PHEKAN YADAV","PRADIP RAMTEL","AITARAM TAMANG","ATIF","KRISHNA TAMANG","MOHIN IRFAN","ARUN THARU","ABDUL MUTLIB","SANJAY THARU","FARMAN ALI","SUHAIL KHAN","MUSHAHID MALVA","VIM NARAYAN","SURINDRA MAHTO","CHANDRA BAHADUR","SADDAM","BUDDA","MOHAMMAD WASIM","TIJANI MUSAH","JIBRIL","SUBHASH","ABDULAI A RAHMAN","FAISAL","ISSAKA ABUBAKARI","SAGAR RAM","MAYAKYE","GANESH LAMA","SELMAN TAMANG","FAROOQ","MD. ALAM","WASIM","FAIZAN","GULFAM","IRFAN YAMEEN","JISHAN IQBAL","JISHAN MUSTAFA","JUBAIR","MAJID","NAJIM","SHAHE AALAM","WASIM YUSUF","HARIS","JITENDRA","MOHSIN","NADEEM","VAKEEL","ALAY","FURKAN","NAUSHAD","SHAHID","WAJID","ATIK","JAMEEL","ASIF","SACHIN","BABA ABUBAKARI"]
             };
-
             const regionSelect = document.getElementById('region-select');
             const stationInput = document.getElementById('station-input');
-            const stationOptions = document.getElementById('station-options');
-            const categoryInput = document.getElementById('category-input');
-
-            if (regionSelect && stationInput && stationOptions) {
-                
-                const populateAllStations = () => {
-                    stationOptions.innerHTML = '';
-                    Object.values(regionStations).flat().forEach(station => {
-                        const option = document.createElement('option');
-                        option.value = station;
-                        stationOptions.appendChild(option);
-                    });
-                };
-                
-                populateAllStations();
-
+            const stationDatalist = document.getElementById('station-options');
+            function populateAllStations() {
+                stationDatalist.innerHTML = '';
+                Object.values(regionStations).flat().forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    stationDatalist.appendChild(opt);
+                });
+            }
+            populateAllStations();
+            if (regionSelect) {
                 regionSelect.addEventListener('change', function() {
-                    const selectedRegion = this.value;
-                    stationOptions.innerHTML = ''; 
-
-                    if (selectedRegion && regionStations[selectedRegion]) {
-                        regionStations[selectedRegion].forEach(station => {
-                            const option = document.createElement('option');
-                            option.value = station;
-                            stationOptions.appendChild(option);
+                    stationDatalist.innerHTML = '';
+                    if (this.value && regionStations[this.value]) {
+                        regionStations[this.value].forEach(s => {
+                            const opt = document.createElement('option');
+                            opt.value = s;
+                            stationDatalist.appendChild(opt);
                         });
                     } else {
                         populateAllStations();
@@ -1570,323 +1963,22 @@
                 });
             }
 
-            // --- 5. GOOGLE SHEETS DATABASE SEARCH & ORDER RENDERING ---
-            
-            let globalDataCache = [];
-            let isDataReady = false;
-
-            // PASTE ALL YOUR APP SCRIPT WEB APP URLS HERE
-            const WEB_APP_URLS = [
-                "https://script.google.com/macros/s/AKfycbzYfDA37mAH6baNnFaHvzzSap3xpxMmAA9fLn1fTV9qIVTdcllng4WrEvL1ybXQw8RKmw/exec",
-                "https://script.google.com/macros/s/AKfycbzPwWK4IcFhoDvOdWKlFWkpjCRGC7AEmVxwCzFbq8XF7ilbom1rVLzz_gfcjVyUXPuG/exec", // Add more URLs here, separated by commas
-                // "YOUR_THIRD_WEB_APP_URL_HERE"
-            ];
-
-            function fetchGoogleSheetData() {
-                const searchBtnElem = document.querySelector('.search-db-btn');
-                if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
-
-                // Create an array of fetch requests
-                const fetchPromises = WEB_APP_URLS.map(url => fetch(url).then(response => response.json()));
-
-                // Wait for all fetches to finish at the same time
-                Promise.all(fetchPromises)
-                    .then(resultsArray => {
-                        let combinedData = [];
-                        let hasError = false;
-
-                        // Combine the data from every URL into one big list
-                        resultsArray.forEach(data => {
-                            if (data.error) {
-                                console.error("Apps Script Error:", data.error);
-                                hasError = true;
-                            } else if (Array.isArray(data)) {
-                                combinedData = combinedData.concat(data);
-                            }
-                        });
-
-                        // If everything failed, show an error
-                        if (hasError && combinedData.length === 0) {
-                            if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Error';
-                            return;
-                        }
-
-                        // Save all the combined data so the search function can use it
-                        globalDataCache = combinedData;
-                        isDataReady = true;
-                        if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
-                    })
-                    .catch(err => {
-                        console.error("Fetch error:", err);
-                        if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Offline / Error';
-                    });
-            }
-
-            // Auto-fetch data on load
-            fetchGoogleSheetData();
-            
-            const searchBtn = document.querySelector('.search-db-btn');
-            const modalOverlay = document.getElementById('resultsModal');
-            const closeModal = document.getElementById('closeModal');
-            const modalBody = document.getElementById('modalBody');
-            const modalContentElem = document.querySelector('#resultsModal .modal-content');
-            const navButtons = document.getElementById('modalNavButtons');
-            const dynamicArrowBtn = document.getElementById('dynamicArrowBtn');
-
-            function toggleArrowVisibility() {
-                if (!modalContentElem || !navButtons) return;
-                const isOverflowing = modalContentElem.scrollHeight > modalContentElem.clientHeight;
-                if (isOverflowing) {
-                    navButtons.classList.add('visible');
-                } else {
-                    navButtons.classList.remove('visible');
+            // Audio & vibration (preserved)
+            const bgMusic = document.getElementById('backgroundMusic');
+            let musicStarted = false;
+            function playMedia() {
+                if ("vibrate" in navigator) navigator.vibrate(50);
+                if (!musicStarted && bgMusic) {
+                    bgMusic.volume = 0.3;
+                    bgMusic.play().then(() => musicStarted = true).catch(() => {});
                 }
             }
+            document.querySelectorAll('.vibrate-and-play-link').forEach(el => el.addEventListener('click', playMedia));
+            document.body.addEventListener('click', playMedia, { once: true });
 
-            function updateArrowDirection() {
-                if (!modalContentElem || !dynamicArrowBtn) return;
-                const scrollTop = modalContentElem.scrollTop;
-                const maxScroll = modalContentElem.scrollHeight - modalContentElem.clientHeight;
-                const isAtBottom = maxScroll - scrollTop <= 5;
-                if (isAtBottom) {
-                    dynamicArrowBtn.innerHTML = '<i class="fas fa-arrow-up"></i>';
-                    dynamicArrowBtn.title = "Go to top";
-                } else {
-                    dynamicArrowBtn.innerHTML = '<i class="fas fa-arrow-down"></i>';
-                    dynamicArrowBtn.title = "Go to bottom";
-                }
-            }
-
-            if (modalContentElem) {
-                modalContentElem.addEventListener('scroll', () => {
-                    updateArrowDirection();
-                });
-            }
-
-            if (searchBtn && regionSelect && stationInput && categoryInput) {
-                searchBtn.addEventListener('click', () => {
-                    const regionRaw = regionSelect.value;
-                    const stationRaw = stationInput.value.trim();
-                    const categoryRaw = categoryInput.value.trim();
-                    
-                    const region = regionRaw && regionRaw !== "" ? regionRaw : null;
-                    const station = stationRaw && stationRaw !== "" ? stationRaw : null;
-                    const category = categoryRaw && categoryRaw !== "" ? categoryRaw : null;
-
-                    if (!region && !station && !category) {
-                        alert("Please provide at least one search criteria (Region, Item, or Category).");
-                        return;
-                    }
-
-                    modalOverlay.classList.add('active');
-                    if (navButtons) navButtons.classList.remove('visible');
-
-                    if (!isDataReady) {
-                        modalBody.innerHTML = '<div class="loader"></div><p style="text-align:center;">Downloading database for the first time, please wait...</p>';
-                        const checkInterval = setInterval(() => {
-                            if (isDataReady) {
-                                clearInterval(checkInterval);
-                                executeSearch();
-                            }
-                        }, 500);
-                        return;
-                    }
-
-                    executeSearch();
-
-                    function executeSearch() {
-                        modalBody.innerHTML = '';
-                        let combinedData = globalDataCache;
-
-                        if (combinedData.length === 0) {
-                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No records found in database.</p>';
-                            toggleArrowVisibility();
-                            return;
-                        }
-
-                        combinedData = combinedData.filter(item => {
-                            const searchRegion = region ? region.toLowerCase().trim() : null;
-                            const searchItem = station ? station.toLowerCase().trim() : null;
-                            const searchCategory = category ? category.toLowerCase().trim() : null;
-
-                            if (!searchRegion && !searchCategory && searchItem) {
-                                return Object.values(item).some(val => 
-                                    val !== null && val !== undefined && String(val).toLowerCase().includes(searchItem)
-                                );
-                            }
-
-                            const myOrder = item["_column_order"];
-                            if (!myOrder || myOrder.length < 3) return false;
-
-                            const offset = (myOrder[0] === "Source_Tab") ? 1 : 0;
-                            const colA_Header = myOrder[offset + 0];
-                            const colB_Header = myOrder[offset + 1];
-                            const colC_Header = myOrder[offset + 2];
-
-                            const valA = String(item[colA_Header] || "").toLowerCase().trim();
-                            const valB = String(item[colB_Header] || "").toLowerCase().trim();
-                            const valC = String(item[colC_Header] || "").toLowerCase().trim();
-
-                            const matchRegion = !searchRegion || (valA === searchRegion);
-                            const matchItem = !searchItem || (valB === searchItem);
-                            const matchCategory = !searchCategory || (valC === searchCategory);
-
-                            return matchRegion && matchItem && matchCategory;
-                        });
-
-                        if (combinedData.length === 0) {
-                            modalBody.innerHTML = '<p style="text-align:center; color: #64748b;">No matching records found for this combination.</p>';
-                        } else {
-                            combinedData.forEach(item => {
-                                const div = document.createElement('div');
-                                div.className = 'result-item';
-                                let content = '';
-                                
-                                if (item["Source_Tab"]) {
-                                    content += `<span class="source-tab-label">${item["Source_Tab"]}</span>`;
-                                }
-
-                                const activeOrder = item["_column_order"];
-                                if (activeOrder && activeOrder.length > 0) {
-                                    activeOrder.forEach(headerName => {
-                                        if (headerName === "_column_order" || headerName === "Source_Tab") return;
-                                        const value = item[headerName];
-                                        if (value !== null && value !== undefined && String(value).trim() !== "") {
-                                            content += `<p><strong>${headerName}:</strong> ${value}</p>`;
-                                        }
-                                    });
-                                } else {
-                                    for (const [key, value] of Object.entries(item)) {
-                                        if (key === "_column_order" || key === "Source_Tab") continue;
-                                        if (value !== null && value !== undefined && String(value).trim() !== "") {
-                                            content += `<p><strong>${key}:</strong> ${value}</p>`;
-                                        }
-                                    }
-                                }
-
-                                div.innerHTML = content;
-                                modalBody.appendChild(div);
-                            });
-
-                            const actionBtnsContainer = document.createElement('div');
-                            actionBtnsContainer.className = 'modal-action-btns';
-                            actionBtnsContainer.innerHTML = `
-                                <button id="btn-print" title="Print Data" class="action-icon-btn"><i class="fas fa-print"></i></button>
-                                <span style="display: flex; align-items: center; font-weight: 600; font-size: 1rem; color: var(--text-main); margin-right: auto; margin-left: 5px;">Total: ${combinedData.length}</span>
-                                <button id="btn-excel" title="Download Excel" class="action-icon-btn"><i class="fas fa-file-excel"></i></button>
-                                <button id="btn-pdf" title="Download PDF" class="action-icon-btn"><i class="fas fa-file-pdf"></i></button>
-                                <button id="btn-wa-share" title="Share on WhatsApp" class="action-icon-btn wa-btn"><i class="fab fa-whatsapp"></i></button>
-                            `;
-                            modalBody.appendChild(actionBtnsContainer);
-
-                            document.getElementById('btn-print').addEventListener('click', () => { window.print(); });
-                            document.getElementById('btn-excel').addEventListener('click', () => {
-                                if(typeof XLSX !== 'undefined') {
-                                    const exportData = combinedData.map(obj => {
-                                        const clean = {...obj};
-                                        delete clean._column_order;
-                                        return clean;
-                                    });
-                                    const ws = XLSX.utils.json_to_sheet(exportData);
-                                    const wb = XLSX.utils.book_new();
-                                    XLSX.utils.book_append_sheet(wb, ws, "Reben Data");
-                                    XLSX.writeFile(wb, "Reben_Database_Export.xlsx");
-                                } else {
-                                    alert("Excel generator is loading...");
-                                }
-                            });
-                            document.getElementById('btn-pdf').addEventListener('click', () => {
-                                if(typeof html2pdf !== 'undefined') {
-                                    const resultsHTML = modalBody.innerHTML;
-                                    const printWrapper = document.createElement('div');
-                                    printWrapper.style.padding = '40px';
-                                    printWrapper.style.background = 'white';
-                                    printWrapper.style.width = '750px'; 
-                                    printWrapper.innerHTML = `
-                                        <div style="text-align:center; border-bottom: 2px solid #ff0f39; padding-bottom: 20px; margin-bottom: 30px;">
-                                            <h1 style="color:#ff0f39; margin:0; font-size: 28px;">REBEN COMPANY</h1>
-                                            <h2 style="color:#1e293b; margin: 10px 0 0 0; font-size: 20px;">Database Search Report</h2>
-                                            <p style="color:#64748b; margin: 5px 0 0 0;">Date: ${new Date().toLocaleString()}</p>
-                                        </div>
-                                        <div style="font-family: 'Outfit', sans-serif;">
-                                            ${resultsHTML}
-                                        </div>
-                                        <div style="margin-top: 40px; text-align: center; color: #94a3b8; font-size: 11px;">
-                                            © 2026 Reben Petroleum | Designed By - Mozahid
-                                        </div>
-                                    `;
-                                    const btnToRemove = printWrapper.querySelector('.modal-action-btns');
-                                    if(btnToRemove) btnToRemove.remove();
-                                    const opt = {
-                                        margin: 10,
-                                        filename: 'Reben_Report.pdf',
-                                        image: { type: 'jpeg', quality: 0.98 },
-                                        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
-                                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                                    };
-                                    html2pdf().set(opt).from(printWrapper).save();
-                                } else {
-                                    alert("PDF tool is still loading...");
-                                }
-                            });
-                            document.getElementById('btn-wa-share').addEventListener('click', () => {
-                                let textToShare = "Reben Database Result:\n\n";
-                                combinedData.forEach((item, index) => {
-                                    textToShare += `Record ${index + 1}:\n`;
-                                    if (item["Source_Tab"]) textToShare += `SOURCE: ${item["Source_Tab"]}\n`;
-                                    const activeOrder = item["_column_order"];
-                                    if (activeOrder && activeOrder.length > 0) {
-                                        activeOrder.forEach(headerName => {
-                                            if (headerName === "_column_order" || headerName === "Source_Tab") return;
-                                            const val = item[headerName];
-                                            if (val) textToShare += `${headerName}: ${val}\n`;
-                                        });
-                                    } else {
-                                        for(const [key, value] of Object.entries(item)) {
-                                            if (key === "_column_order" || key === "Source_Tab") continue;
-                                            if (value) textToShare += `${key}: ${value}\n`;
-                                        }
-                                    }
-                                    textToShare += "\n";
-                                });
-                                window.open(`https://wa.me/?text=${encodeURIComponent(textToShare)}`, '_blank');
-                            });
-                        }
-
-                        setTimeout(() => {
-                            toggleArrowVisibility();
-                            updateArrowDirection();
-                        }, 50);
-                    }
-                });
-            }
-
-            closeModal.addEventListener('click', () => { modalOverlay.classList.remove('active'); });
-            modalOverlay.addEventListener('click', (e) => { 
-                if (e.target === modalOverlay) modalOverlay.classList.remove('active'); 
-            });
-
-            if (dynamicArrowBtn && modalContentElem) {
-                dynamicArrowBtn.addEventListener('click', () => {
-                    const scrollTop = modalContentElem.scrollTop;
-                    const maxScroll = modalContentElem.scrollHeight - modalContentElem.clientHeight;
-                    const isAtBottom = maxScroll - scrollTop <= 5;
-                    if (isAtBottom) {
-                        modalContentElem.scrollTo({ top: 0, behavior: 'smooth' });
-                    } else {
-                        modalContentElem.scrollTo({ top: modalContentElem.scrollHeight, behavior: 'smooth' });
-                    }
-                });
-            }
-
-            if (modalBody && modalContentElem) {
-                const observer = new MutationObserver(() => {
-                    toggleArrowVisibility();
-                    updateArrowDirection();
-                });
-                observer.observe(modalBody, { childList: true, subtree: true, characterData: true });
-            }
-        });
+            // Initial data fetch (cached + background refresh)
+            fetchAllSheetsWithCache();
+        })();
     </script>
 </body>
 </html>
