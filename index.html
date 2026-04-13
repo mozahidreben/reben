@@ -147,8 +147,8 @@
 
         .ticker-content {
             display: inline-block;
-            animation: scrollText 35s linear infinite;
-            padding-right: 100%;
+            animation: scrollText linear infinite;
+            padding-right: 0;
             will-change: transform;
         }
 
@@ -866,7 +866,7 @@
             .grid-row { 
                 display: grid;
                 grid-template-columns: repeat(4, 1fr); 
-                overflow-x: visible;
+                overflow-x: auto;
                 padding: 0;
                 margin-bottom: 25px;
             }
@@ -1126,15 +1126,8 @@
         <div class="news-ticker-bar vibrate-and-play-link">
             <div class="ticker-badge">LIVE <span class="ticker-updates-text">‎‎ UPDATES</span></div>
             <div class="ticker-wrapper">
-                <div class="ticker-content">
-                    <div class="ticker-item"><i class="fas fa-bolt"></i> Welcome to the premium Reben Portal.</div>
-                    <div class="ticker-item"><i class="fas fa-check-circle"></i> For more information, schedule a meeting with our CEO, Eng. Mohamed Fawzy.</div>
-                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Q3 Targets exceeded by 25%.</div>
-                    <div class="ticker-item"><i class="fas fa-sync-alt"></i> Soon we are opening 5 more station in Riyadh region.</div>
-                    <div class="ticker-item"><i class="fas fa-bolt"></i> Welcome to the premium Reben Portal.</div>
-                    <div class="ticker-item"><i class="fas fa-check-circle"></i> Station Inspections live from Dec 16- 2025.</div>
-                    <div class="ticker-item"><i class="fas fa-chart-line"></i> Contact Us For  Franchise.</div>
-                    <div class="ticker-item"><i class="fas fa-sync-alt"></i> New Data Sync Protocol activated.</div>
+                <div class="ticker-content" id="ticker-content">
+                    <div class="ticker-item"><i class="fas fa-bolt"></i> Welcome to Reben-Live Updates.</div>
                 </div>
             </div>
         </div>
@@ -1264,9 +1257,9 @@
                 <div class="card-icon-box"><i class="fas fa-tasks"></i></div>
                 <span>March Stations Stock & Sales</span>
             </a>
-            <a href="https://docs.google.com/spreadsheets/d/1GSJ3ZcpJoV6s5sQyoQccM5o7bTX88pzNp0sk0mZF__Q/edit?usp=sharing" target="_blank" class="card vibrate-and-play-link">
+            <a href="#" target="_blank" class="card vibrate-and-play-link">
                 <div class="card-icon-box"><i class="fas fa-clock"></i></div>
-                <span>Station Maintenance</span>
+                <span>Pending 04</span>
             </a>
         </div>
 
@@ -1420,6 +1413,66 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
+            // --- 0. DYNAMIC GOOGLE SHEET TICKER LOGIC (CONSTANT SPEED) ---
+            const TICKER_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJHgVMUdXFu0ycjF5umernPUk4U0sryWGSj0oXMcoKebkzSgSzm1gJP8XpRpt_WZZ58Q/exec";
+
+            function fetchTickerUpdates() {
+                if (!TICKER_WEB_APP_URL) return;
+
+                fetch(TICKER_WEB_APP_URL)
+                    .then(res => res.json())
+                    .then(data => {
+                        const tickerContent = document.getElementById('ticker-content');
+                        if (tickerContent && Array.isArray(data) && data.length > 0) {
+                            tickerContent.innerHTML = ''; // Clear default HTML
+                            
+                            // Adding greeting text
+                            const defaultMsgDiv = document.createElement('div');
+                            defaultMsgDiv.className = 'ticker-item';
+                            defaultMsgDiv.innerHTML = `<i class="fas fa-bolt"></i> Welcome to Reben-Live Updates.`;
+                            tickerContent.appendChild(defaultMsgDiv);
+                            
+                            const icons = ['fa-info-circle', 'fa-exclamation-circle', 'fa-bell'];
+                            
+                            data.forEach((row, index) => {
+                                let msg = "";
+                                if (typeof row === 'string') {
+                                    msg = row;
+                                } else if (Array.isArray(row)) {
+                                    msg = row.filter(val => val !== null && val !== "").join(" - ");
+                                } else if (typeof row === 'object') {
+                                    msg = Object.values(row).filter(val => val !== null && val !== "").join(" - ");
+                                }
+
+                                if(msg && msg.trim() !== "") {
+                                    const icon = icons[index % icons.length];
+                                    const itemDiv = document.createElement('div');
+                                    itemDiv.className = 'ticker-item';
+                                    itemDiv.innerHTML = `<i class="fas ${icon}"></i> ${msg}`;
+                                    tickerContent.appendChild(itemDiv);
+                                }
+                            });
+
+                            // Duplicate content for a seamless loop
+                            const originalItems = tickerContent.innerHTML;
+                            tickerContent.innerHTML += originalItems; 
+
+                            // Calculate Duration for Constant Speed
+                            // Aiming for ~80 pixels per second
+                            const scrollWidth = tickerContent.scrollWidth / 2;
+                            const speed = 80; 
+                            const duration = scrollWidth / speed;
+
+                            // Apply dynamic duration to the animation
+                            tickerContent.style.animationDuration = duration + "s";
+                        }
+                    })
+                    .catch(err => console.error("Failed to load ticker data:", err));
+            }
+            
+            // Initiate Ticker Data Fetch
+            fetchTickerUpdates();
+
             // --- 1. Audio & Vibration Logic ---
             const backgroundMusic = document.getElementById('backgroundMusic');
             let musicStarted = false;
@@ -1531,7 +1584,7 @@
                     "ASHOK", "MUTAKIRU", "ABDULAI", "SALMAN", "KAMLESH", "AFROJ", "RASHID AMIDU",
                     "PHEKAN YADAV", "PRADIP RAMTEL", "AITARAM TAMANG", "ATIF", "KRISHNA TAMANG",
                     "MOHIN IRFAN", "ARUN THARU", "ABDUL MUTLIB", "SANJAY THARU", "FARMAN ALI",
-                    "SUHAIL KHAN", "MUSHAHID MALVA", "VIM NARAYAN", "SURINDRA MAHTO", "CHANDRA BAHADUR",
+                    "SUHAIL KHAN", "MUSHAHID MALVA", "VIM Narayan", "SURINDRA MAHTO", "CHANDRA BAHADUR",
                     "SADDAM", "BUDDA", "MOHAMMAD WASIM", "TIJANI MUSAH", "JIBRIL", "SUBHASH",
                     "ABDULAI A RAHMAN", "FAISAL", "ISSAKA ABUBAKARI", "SAGAR RAM", "MAYAKYE",
                     "GANESH LAMA", "SELMAN TAMANG", "FAROOQ", "MD. ALAM", "WASIM", "FAIZAN", "GULFAM",
@@ -1581,27 +1634,22 @@
             let globalDataCache = [];
             let isDataReady = false;
 
-            // PASTE ALL YOUR APP SCRIPT WEB APP URLS HERE
             const WEB_APP_URLS = [
                 "https://script.google.com/macros/s/AKfycbzYfDA37mAH6baNnFaHvzzSap3xpxMmAA9fLn1fTV9qIVTdcllng4WrEvL1ybXQw8RKmw/exec",
-                "https://script.google.com/macros/s/AKfycbzPwWK4IcFhoDvOdWKlFWkpjCRGC7AEmVxwCzFbq8XF7ilbom1rVLzz_gfcjVyUXPuG/exec", // Add more URLs here, separated by commas
-                // "YOUR_THIRD_WEB_APP_URL_HERE"
+                "https://script.google.com/macros/s/AKfycbzPwWK4IcFhoDvOdWKlFWkpjCRGC7AEmVxwCzFbq8XF7ilbom1rVLzz_gfcjVyUXPuG/exec"
             ];
 
             function fetchGoogleSheetData() {
                 const searchBtnElem = document.querySelector('.search-db-btn');
                 if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing Live Data...';
 
-                // Create an array of fetch requests
                 const fetchPromises = WEB_APP_URLS.map(url => fetch(url).then(response => response.json()));
 
-                // Wait for all fetches to finish at the same time
                 Promise.all(fetchPromises)
                     .then(resultsArray => {
                         let combinedData = [];
                         let hasError = false;
 
-                        // Combine the data from every URL into one big list
                         resultsArray.forEach(data => {
                             if (data.error) {
                                 console.error("Apps Script Error:", data.error);
@@ -1611,13 +1659,11 @@
                             }
                         });
 
-                        // If everything failed, show an error
                         if (hasError && combinedData.length === 0) {
                             if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Sync Error';
                             return;
                         }
 
-                        // Save all the combined data so the search function can use it
                         globalDataCache = combinedData;
                         isDataReady = true;
                         if (searchBtnElem) searchBtnElem.innerHTML = '<i class="fas fa-search"></i> Search Database Records';
@@ -1628,7 +1674,6 @@
                     });
             }
 
-            // Auto-fetch data on load
             fetchGoogleSheetData();
             
             const searchBtn = document.querySelector('.search-db-btn');
