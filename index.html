@@ -1413,17 +1413,38 @@
 
         document.addEventListener("DOMContentLoaded", () => {
             
-            // --- 0. DYNAMIC GOOGLE SHEET TICKER LOGIC (CONSTANT SPEED) ---
-            const TICKER_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyJHgVMUdXFu0ycjF5umernPUk4U0sryWGSj0oXMcoKebkzSgSzm1gJP8XpRpt_WZZ58Q/exec";
+            // --- 0. DYNAMIC GOOGLE SHEET TICKER LOGIC (MULTIPLE LINKS CONSTANT SPEED) ---
+            const TICKER_WEB_APP_URLS = [
+                "https://script.google.com/macros/s/AKfycbyJHgVMUdXFu0ycjF5umernPUk4U0sryWGSj0oXMcoKebkzSgSzm1gJP8XpRpt_WZZ58Q/exec",
+                // ADD MORE WEB APP LINKS HERE LIKE THIS:
+                // "YOUR_SECOND_LINK_HERE",
+                // "YOUR_THIRD_LINK_HERE"
+            ];
 
             function fetchTickerUpdates() {
-                if (!TICKER_WEB_APP_URL) return;
+                if (!TICKER_WEB_APP_URLS || TICKER_WEB_APP_URLS.length === 0) return;
 
-                fetch(TICKER_WEB_APP_URL)
-                    .then(res => res.json())
-                    .then(data => {
+                const fetchPromises = TICKER_WEB_APP_URLS.map(url => 
+                    fetch(url)
+                        .then(res => res.json())
+                        .catch(err => {
+                            console.error("Failed to load ticker data from a URL:", err);
+                            return []; 
+                        })
+                );
+
+                Promise.all(fetchPromises)
+                    .then(resultsArray => {
+                        let combinedData = [];
+                        
+                        resultsArray.forEach(data => {
+                            if (Array.isArray(data)) {
+                                combinedData = combinedData.concat(data);
+                            }
+                        });
+
                         const tickerContent = document.getElementById('ticker-content');
-                        if (tickerContent && Array.isArray(data) && data.length > 0) {
+                        if (tickerContent && Array.isArray(combinedData) && combinedData.length > 0) {
                             tickerContent.innerHTML = ''; // Clear default HTML
                             
                             // Adding greeting text
@@ -1434,7 +1455,7 @@
                             
                             const icons = ['fa-info-circle', 'fa-exclamation-circle', 'fa-bell'];
                             
-                            data.forEach((row, index) => {
+                            combinedData.forEach((row, index) => {
                                 let msg = "";
                                 if (typeof row === 'string') {
                                     msg = row;
@@ -1467,7 +1488,7 @@
                             tickerContent.style.animationDuration = duration + "s";
                         }
                     })
-                    .catch(err => console.error("Failed to load ticker data:", err));
+                    .catch(err => console.error("Failed to process ticker data:", err));
             }
             
             // Initiate Ticker Data Fetch
